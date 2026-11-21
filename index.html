@@ -5,10 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Курсив банк</title>
 <style>
-:root{
-  --bg:#0b1020; --card:#141b33; --card2:#1b2444; --text:#e8ecff; --muted:#8b95c2;
-  --accent:#5b7cff; --accent2:#7c5bff; --ok:#25d18a; --err:#ff5b6e; --border:#26305a;
-}
+:root{--bg:#0b1020;--card:#141b33;--card2:#1b2444;--text:#e8ecff;--muted:#8b95c2;
+  --accent:#5b7cff;--accent2:#7c5bff;--ok:#25d18a;--err:#ff5b6e;--border:#26305a}
 *{box-sizing:border-box}
 body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
   background:radial-gradient(1200px 800px at 20% -10%, #1a2350, #0b1020 60%);
@@ -93,6 +91,14 @@ h3{font-size:15px;color:var(--muted);font-weight:600;margin:0 0 10px}
 .toast.ok{border-color:var(--ok)} .toast.err{border-color:var(--err)}
 @keyframes up{from{opacity:0;transform:translate(-50%,10px)}to{opacity:1;transform:translate(-50%,0)}}
 
+/* ===== МОДАЛКИ QR ===== */
+.qr-modal{position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(6px);z-index:1000;
+  display:none;align-items:center;justify-content:center;padding:20px}
+.qr-modal.show{display:flex}
+.qr-modal-body{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:20px;
+  width:100%;max-width:420px;max-height:90vh;overflow-y:auto}
+#qrReader{width:100%;min-height:220px;border-radius:12px;overflow:hidden;background:#0a1024;border:1px solid var(--border)}
+#qrReader video{border-radius:12px}
 /* ===== АНИМАЦИЯ ТРАНЗАКЦИИ ===== */
 .anim-overlay{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
   pointer-events:none;z-index:9999;animation:animFade 1.5s ease forwards}
@@ -112,8 +118,34 @@ h3{font-size:15px;color:var(--muted);font-weight:600;margin:0 0 10px}
 <body>
 <div class="wrap" id="root"></div>
 
+<!-- Модалка сканера QR -->
+<div id="qrModal" class="qr-modal">
+  <div class="qr-modal-body">
+    <div class="row-between" style="margin-bottom:12px">
+      <b>Сканирование QR</b>
+      <button class="btn ghost small" id="btnQrModalClose">✕</button>
+    </div>
+    <div id="qrReader"></div>
+    <div class="muted small" style="text-align:center;margin:12px 0">или введите код вручную</div>
+    <input id="qrManualInput" class="input" placeholder="Код платежа (например p123abc)"/>
+    <button class="btn" id="btnQrManualGo">Продолжить</button>
+  </div>
+</div>
+
+<!-- Модалка подтверждения -->
+<div id="qrConfirmModal" class="qr-modal">
+  <div class="qr-modal-body">
+    <h2 style="text-align:center">Оплата по QR</h2>
+    <div class="muted" style="text-align:center">Сумма к оплате</div>
+    <div class="big" style="text-align:center;margin:10px 0 20px" id="qrConfirmAmount">0 ₽</div>
+    <button class="btn" id="btnQrConfirmPay" style="margin-bottom:8px">Оплатить</button>
+    <button class="btn ghost" id="btnQrConfirmCancel">Отмена</button>
+  </div>
+</div>
+
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <script>
 /* ========== FIREBASE ========== */
 const firebaseConfig = {
@@ -129,9 +161,10 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 db.goOnline();
 
-/* ========== КОНСТАНТЫ И УТИЛИТЫ ========== */
+/* ========== УТИЛИТЫ ========== */
 const ADMIN_PHONE = '+79936050979';
 const WELCOME_BONUS = 1000;
+const QR_TTL = 5 * 60 * 1000;
 
 const fmt = n => new Intl.NumberFormat('ru-RU',{maximumFractionDigits:2}).format(Number(n)||0) + ' ₽';
 const parseAmount = v => Math.round((parseFloat(String(v).replace(',','.'))||0)*100)/100;
@@ -161,13 +194,9 @@ function formatCardNum(n){ return String(n).replace(/(\d{4})(?=\d)/g,'$1 '); }
 function attachPhoneInput(inp){
   inp.addEventListener('input', () => {
     const f = formatPhone(inp.value);
-    if (f !== inp.value){
-      inp.value = f;
-      inp.setSelectionRange(f.length, f.length);
-    }
+    if (f !== inp.value){ inp.value = f; inp.setSelectionRange(f.length, f.length); }
   });
 }
-
 function toast(msg, type){
   const t = document.createElement('div');
   t.className = 'toast ' + (type||'');
@@ -175,8 +204,6 @@ function toast(msg, type){
   document.body.appendChild(t);
   setTimeout(()=>t.remove(), 2600);
 }
-
-/* ========== АНИМАЦИЯ ТРАНЗАКЦИИ ========== */
 function celebrate(positive, amount, label){
   const el = document.createElement('div');
   el.className = 'anim-overlay';
@@ -188,15 +215,10 @@ function celebrate(positive, amount, label){
   document.body.appendChild(el);
   setTimeout(()=>el.remove(), 1600);
 }
-
 function bumpBalance(){
-  // подсветим крупный баланс, если он есть на экране
   setTimeout(() => {
     const big = document.querySelector('.big');
-    if (big){
-      big.classList.add('bump');
-      setTimeout(()=>big.classList.remove('bump'), 700);
-    }
+    if (big){ big.classList.add('bump'); setTimeout(()=>big.classList.remove('bump'), 700); }
   }, 100);
 }
 
@@ -287,14 +309,11 @@ function renderLogin(){
     document.getElementById('btnBack').onclick = () => { loginState.step='phone'; loginState.error=''; render(); };
   }
 }
-
 function doLogin(phone){
   localStorage.setItem('cbank_phone', phone);
-  state.phone = phone;
-  state.tab = 'home';
+  state.phone = phone; state.tab = 'home';
   subscribeUser(phone);
 }
-
 function subscribeUser(phone){
   if (unsubUser){ unsubUser(); unsubUser = null; }
   unsubUser = db.ref('users/'+phone).on('value', snap => {
@@ -310,7 +329,6 @@ function subscribeUser(phone){
     });
   }
 }
-
 function logout(){
   if (unsubUser){ unsubUser(); unsubUser = null; }
   if (unsubAll){ unsubAll(); unsubAll = null; }
@@ -346,10 +364,8 @@ async function opTransferByPhone(toPhone, amountRaw, note){
   await db.ref('users/'+toPhone+'/balance').transaction(b => (b||0) + a);
   await pushHistory(state.phone, { type:'out', amount:a, to:toPhone, note: note||'' });
   await pushHistory(toPhone,      { type:'in',  amount:a, from:state.phone, note: note||'' });
-  celebrate(false, a, 'Перевод выполнен');
-  bumpBalance();
+  celebrate(false, a, 'Перевод выполнен'); bumpBalance();
 }
-
 async function opSelfTransfer(fromAcc, toAcc, amountRaw){
   checkNotFrozen();
   const a = parseAmount(amountRaw);
@@ -364,20 +380,16 @@ async function opSelfTransfer(fromAcc, toAcc, amountRaw){
   if (!res.committed) throw new Error('Недостаточно средств');
   await db.ref(base+toAcc).transaction(b => (b||0) + a);
   await pushHistory(state.phone, { type:'self', amount:a, from:fromAcc, to:toAcc, note:'Между своими счетами' });
-  celebrate(false, a, 'Перевод между счетами');
-  bumpBalance();
+  celebrate(false, a, 'Перевод между счетами'); bumpBalance();
 }
-
 async function opTopUpAccount(amountRaw){
   checkNotFrozen();
   const a = parseAmount(amountRaw);
   if (!(a > 0)) throw new Error('Сумма должна быть больше 0');
   await db.ref('users/'+state.phone+'/balance').transaction(b => (b||0) + a);
   await pushHistory(state.phone, { type:'topup', amount:a, note:'Пополнение счёта' });
-  celebrate(true, a, 'Счёт пополнен');
-  bumpBalance();
+  celebrate(true, a, 'Счёт пополнен'); bumpBalance();
 }
-
 async function opGoalContribute(goalId, amountRaw){
   checkNotFrozen();
   const a = parseAmount(amountRaw);
@@ -390,16 +402,13 @@ async function opGoalContribute(goalId, amountRaw){
   if (!res.committed) throw new Error('Недостаточно средств');
   await db.ref('users/'+state.phone+'/goals/'+goalId+'/saved').transaction(b => (b||0) + a);
   await pushHistory(state.phone, { type:'goal', amount:a, goalId, note:'Пополнение цели' });
-  celebrate(false, a, 'Отложено в цель');
-  bumpBalance();
+  celebrate(false, a, 'Отложено в цель'); bumpBalance();
 }
-
 async function requestCard(){
   checkNotFrozen();
   if (state.user.cardOrder && state.user.cardOrder.status === 'pending') throw new Error('Заявка уже отправлена');
   await db.ref('users/'+state.phone+'/cardOrder').set({ status:'pending', ts: Date.now() });
 }
-
 async function adminIssueCard(phone){
   const inp = document.getElementById('cardNum_'+saneId(phone));
   const cardNumber = (inp ? inp.value : '').replace(/\D/g,'');
@@ -409,13 +418,117 @@ async function adminIssueCard(phone){
   await db.ref('users/'+phone+'/cardOrder').remove();
   toast('Карта выдана клиенту ' + phone, 'ok');
 }
-
 async function adminFreeze(phone, freeze){
   await db.ref('users/'+phone+'/frozen').set(freeze);
   toast(freeze ? 'Клиент заморожен' : 'Клиент разморожен', 'ok');
 }
 
-/* ========== РЕНДЕР ПРИЛОЖЕНИЯ ========== */
+/* ========== QR-ОПЛАТА (клиент) ========== */
+let html5QrCode = null;
+let pendingQrId = null;
+
+async function openQrScanner(){
+  document.getElementById('qrModal').classList.add('show');
+  document.getElementById('qrManualInput').value = '';
+  if (!html5QrCode){
+    try { html5QrCode = new Html5Qrcode('qrReader'); }
+    catch(e){ console.warn('scanner init', e); return; }
+  }
+  try {
+    await html5QrCode.start(
+      { facingMode: 'environment' },
+      { fps: 10, qrbox: { width: 240, height: 240 } },
+      (text) => { stopQrScanner(); closeQrModal(); handleQrScan(text); },
+      () => {}
+    );
+  } catch(err){
+    console.warn('camera error', err);
+    toast('Камера недоступна — введите код вручную', 'err');
+  }
+}
+async function stopQrScanner(){
+  if (html5QrCode){
+    try { await html5QrCode.stop(); } catch(e){}
+  }
+}
+async function closeQrModal(){
+  document.getElementById('qrModal').classList.remove('show');
+  await stopQrScanner();
+}
+function parseQrContent(text){
+  text = String(text||'').trim();
+  if (text.startsWith('cursivpay:')) return text.slice(10);
+  return text;
+}
+async function handleQrScan(text){
+  const id = parseQrContent(text);
+  if (!id){ toast('Неверный QR', 'err'); return; }
+  try {
+    const snap = await db.ref('qr_payments/'+id).once('value');
+    const p = snap.val();
+    if (!p) throw new Error('QR не найден');
+    if (p.status !== 'pending') throw new Error('QR уже использован');
+    if (Date.now() - p.ts > QR_TTL) throw new Error('QR истёк');
+    pendingQrId = id;
+    document.getElementById('qrConfirmAmount').textContent = fmt(p.amount);
+    document.getElementById('qrConfirmModal').classList.add('show');
+  } catch(err){ toast(err.message, 'err'); }
+}
+async function confirmQrPayment(){
+  if (!pendingQrId) return;
+  const id = pendingQrId;
+  pendingQrId = null;
+  document.getElementById('qrConfirmModal').classList.remove('show');
+  try {
+    checkNotFrozen();
+    const qrSnap = await db.ref('qr_payments/'+id).once('value');
+    const qr = qrSnap.val();
+    if (!qr) throw new Error('QR не найден');
+    if (qr.status !== 'pending') throw new Error('Уже оплачен');
+    if (Date.now() - qr.ts > QR_TTL) throw new Error('QR истёк');
+
+    // 1. Списываем с основного счёта
+    const balRes = await db.ref('users/'+state.phone+'/balance').transaction(b => {
+      const bal = b || 0;
+      if (bal < qr.amount) return;
+      return bal - qr.amount;
+    });
+    if (!balRes.committed) throw new Error('Недостаточно средств');
+
+    // 2. Атомарно помечаем QR оплаченным
+    const qrRes = await db.ref('qr_payments/'+id).transaction(p => {
+      if (!p || p.status !== 'pending') return;
+      return { ...p, status: 'paid', paidBy: state.phone, paidAt: Date.now() };
+    });
+    if (!qrRes.committed){
+      // откат — кто-то оплатил параллельно
+      await db.ref('users/'+state.phone+'/balance').transaction(b => (b||0) + qr.amount);
+      throw new Error('Платёж уже был оплачен');
+    }
+
+    await pushHistory(state.phone, {
+      type:'qr', amount: qr.amount, paymentId: id, note:'Оплата по QR'
+    });
+    celebrate(false, qr.amount, 'Оплата по QR');
+    bumpBalance();
+    toast('Оплачено', 'ok');
+  } catch(err){ toast(err.message, 'err'); }
+}
+
+document.getElementById('btnQrModalClose').onclick = closeQrModal;
+document.getElementById('btnQrConfirmCancel').onclick = () => {
+  pendingQrId = null;
+  document.getElementById('qrConfirmModal').classList.remove('show');
+};
+document.getElementById('btnQrConfirmPay').onclick = confirmQrPayment;
+document.getElementById('btnQrManualGo').onclick = async () => {
+  const v = document.getElementById('qrManualInput').value.trim();
+  if (!v) return;
+  await closeQrModal();
+  handleQrScan(v);
+};
+
+/* ========== РЕНДЕР ========== */
 function render(){
   if (!state.phone){ renderLogin(); return; }
   const root = document.getElementById('root');
@@ -475,7 +588,7 @@ function viewHome(){
     </div>
     <div class="quick">
       <button data-tab="transfers">Перевод</button>
-      <button data-tab="cards">Карты</button>
+      <button data-qrscan="1">QR-оплата</button>
       <button data-tab="history">История</button>
     </div>
     <div class="card">
@@ -495,6 +608,11 @@ function viewTransfers(){
   return `
     <h2>Переводы</h2>
     <div class="card">
+      <h3>Оплата по QR</h3>
+      <p class="muted small" style="margin:0 0 10px">Отсканируйте QR-код с терминала и подтвердите оплату.</p>
+      <button class="btn" data-qrscan="1">Сканировать QR</button>
+    </div>
+    <div class="card">
       <h3>Между своими счетами</h3>
       <div class="grid2">
         <select id="selfFrom" class="input">
@@ -509,7 +627,6 @@ function viewTransfers(){
       <input id="selfAmount" class="input" inputmode="decimal" placeholder="Сумма"/>
       <button class="btn" id="btnSelf">Перевести</button>
     </div>
-
     <div class="card">
       <h3>По номеру телефона</h3>
       <input id="tpPhone" class="input" inputmode="tel" placeholder="+7 999 123-45-67"/>
@@ -518,7 +635,6 @@ function viewTransfers(){
       ${favs.length ? `<div class="chips">${favs.map(([p,n])=>`<button class="chip" data-fav="${p}">${escapeHtml(n)}</button>`).join('')}</div>` : ''}
       <button class="btn" id="btnTp">Перевести</button>
     </div>
-
     <div class="card">
       <h3>Пополнить счёт</h3>
       <p class="muted small" style="margin:0 0 10px">Деньги зачислятся на основной счёт и сразу отразятся на карте.</p>
@@ -556,6 +672,7 @@ function historyRow(e){
     case 'topup':      title='Пополнение счёта'; amt='+'+fmt(e.amount); cls='pos'; break;
     case 'goal':       title='Пополнение цели'; amt='−'+fmt(e.amount); cls='neg'; break;
     case 'terminal':   title='Оплата в терминале'; amt='−'+fmt(e.amount); cls='neg'; break;
+    case 'qr':         title='Оплата по QR'; amt='−'+fmt(e.amount); cls='neg'; break;
     default:           title=e.type||'Операция'; amt=fmt(e.amount||0);
   }
   const date = e.ts ? new Date(e.ts).toLocaleString('ru-RU',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '';
@@ -585,7 +702,6 @@ function viewMore(){
         <span class="chip">${escapeHtml(n)} · ${p} <b data-delfav="${p}" style="margin-left:6px;color:var(--err);cursor:pointer">✕</b></span>
       `).join('')}</div>` : ''}
     </div>
-
     <h2>Цели</h2>
     <div class="card">
       <input id="goalName" class="input" placeholder="Название цели"/>
@@ -625,7 +741,6 @@ function viewAdmin(){
         </div>
       `).join('') : '<div class="muted small">Нет заявок</div>'}
     </div>
-
     <div class="card">
       <h3>Клиенты (${entries.length})</h3>
       ${entries.map(([p,u])=>`
@@ -645,17 +760,14 @@ function viewAdmin(){
   `;
 }
 
-/* ========== ПРИВЯЗКА СОБЫТИЙ ========== */
+/* ========== ПРИВЯЗКА ========== */
 function bindView(){
   const $ = id => document.getElementById(id);
-
   if ($('btnLogout')) $('btnLogout').onclick = logout;
-
   if ($('btnSelf')) $('btnSelf').onclick = async () => {
     try { await opSelfTransfer($('selfFrom').value, $('selfTo').value, $('selfAmount').value); toast('Перевод выполнен','ok'); }
     catch(err){ toast(err.message,'err'); }
   };
-
   if ($('btnTp')){
     attachPhoneInput($('tpPhone'));
     $('btnTp').onclick = async () => {
@@ -666,17 +778,14 @@ function bindView(){
       } catch(err){ toast(err.message,'err'); }
     };
   }
-
   if ($('btnTopUp')) $('btnTopUp').onclick = async () => {
     try { await opTopUpAccount($('topAmount').value); toast('Счёт пополнен','ok'); }
     catch(err){ toast(err.message,'err'); }
   };
-
   if ($('btnOrderCard')) $('btnOrderCard').onclick = async () => {
     try { await requestCard(); toast('Заявка отправлена','ok'); }
     catch(err){ toast(err.message,'err'); }
   };
-
   if ($('btnAddFav')) $('btnAddFav').onclick = async () => {
     try {
       if (digitsPhone($('favPhone').value).length < 11) throw new Error('Неверный номер');
@@ -686,7 +795,6 @@ function bindView(){
       toast('Добавлено','ok');
     } catch(err){ toast(err.message,'err'); }
   };
-
   if ($('btnAddGoal')) $('btnAddGoal').onclick = async () => {
     try {
       const name = $('goalName').value.trim();
@@ -697,7 +805,6 @@ function bindView(){
       toast('Цель создана','ok');
     } catch(err){ toast(err.message,'err'); }
   };
-
   document.querySelectorAll('[data-goalcontribute]').forEach(btn => {
     btn.onclick = async () => {
       const id = btn.dataset.goalcontribute;
@@ -705,12 +812,14 @@ function bindView(){
       catch(err){ toast(err.message,'err'); }
     };
   });
-
   if ($('favPhone')) attachPhoneInput($('favPhone'));
 }
 
-/* ========== ГЛОБАЛЬНЫЙ ДЕЛЕГАТ ========== */
+/* ========== ДЕЛЕГАТ ========== */
 document.addEventListener('click', async (e) => {
+  const qrBtn = e.target.closest('[data-qrscan]');
+  if (qrBtn){ openQrScanner(); return; }
+
   const tabBtn = e.target.closest('[data-tab]');
   if (tabBtn){ state.tab = tabBtn.dataset.tab; render(); return; }
 
