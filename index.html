@@ -70,8 +70,7 @@ h3{font-size:15px;color:var(--muted);font-weight:600;margin:0 0 10px}
 .order-head{display:flex;justify-content:space-between;margin-bottom:8px}
 .badge{padding:3px 10px;border-radius:999px;font-size:11px;font-weight:600}
 .badge.pending{background:rgba(255,193,7,.15);color:var(--warn)}
-.badge.issued{background:rgba(37,209,138,.15);color:var(--ok)}
-.badge.approved{background:rgba(37,209,138,.15);color:var(--ok)}
+.badge.issued,.badge.approved{background:rgba(37,209,138,.15);color:var(--ok)}
 .badge.rejected{background:rgba(255,91,110,.15);color:var(--err)}
 .modal{position:fixed;inset:0;background:rgba(0,0,0,.8);backdrop-filter:blur(6px);z-index:1000;
   display:none;align-items:center;justify-content:center;padding:20px}
@@ -119,7 +118,6 @@ h3{font-size:15px;color:var(--muted);font-weight:600;margin:0 0 10px}
 <body>
 <div class="wrap" id="root"></div>
 
-<!-- Выбор ПВЗ -->
 <div id="pvzSelectModal" class="modal">
   <div class="modal-body">
     <div class="modal-head"><b>Выберите пункт выдачи</b>
@@ -129,7 +127,6 @@ h3{font-size:15px;color:var(--muted);font-weight:600;margin:0 0 10px}
   </div>
 </div>
 
-<!-- QR заказа -->
 <div id="orderQrModal" class="modal">
   <div class="modal-body">
     <div class="modal-head"><b>Код получения</b>
@@ -141,7 +138,6 @@ h3{font-size:15px;color:var(--muted);font-weight:600;margin:0 0 10px}
   </div>
 </div>
 
-<!-- Заявка на ПВЗ -->
 <div id="applyPvzModal" class="modal">
   <div class="modal-body">
     <div class="modal-head"><b>Стать пунктом выдачи</b>
@@ -174,18 +170,18 @@ db.goOnline();
 /* ================= КОНСТАНТЫ ================= */
 const ADMIN_PHONE = '+79936050979';
 const PRODUCTS = [
-  { id:'p1',  name:'AirPods Pro 2',      price:19990, emoji:'🎧' },
-  { id:'p2',  name:'iPhone 15 128GB',    price:89990, emoji:'📱' },
-  { id:'p3',  name:'Nike Air Zoom',      price:12990, emoji:'👟' },
-  { id:'p4',  name:'Куртка зимняя',      price:8990,  emoji:'🧥' },
-  { id:'p5',  name:'DeLonghi Magnifica', price:25990, emoji:'☕' },
-  { id:'p6',  name:'Набор кастрюль',     price:6990,  emoji:'🍳' },
-  { id:'p7',  name:'Мастер и Маргарита', price:890,   emoji:'📚' },
-  { id:'p8',  name:'Рюкзак городской',   price:3990,  emoji:'🎒' },
-  { id:'p9',  name:'Умные часы',         price:15990, emoji:'⌚' },
-  { id:'p10', name:'Плед пушистый',      price:1990,  emoji:'🛏️' },
-  { id:'p11', name:'Пылесос-робот',      price:34990, emoji:'🤖' },
-  { id:'p12', name:'Кружка керамическая',price:590,   emoji:'🍵' },
+  { id:'p1',  name:'AirPods Pro 2',       price:19990, emoji:'🎧' },
+  { id:'p2',  name:'iPhone 15 128GB',     price:89990, emoji:'📱' },
+  { id:'p3',  name:'Nike Air Zoom',       price:12990, emoji:'👟' },
+  { id:'p4',  name:'Куртка зимняя',       price:8990,  emoji:'🧥' },
+  { id:'p5',  name:'DeLonghi Magnifica',  price:25990, emoji:'☕' },
+  { id:'p6',  name:'Набор кастрюль',      price:6990,  emoji:'🍳' },
+  { id:'p7',  name:'Мастер и Маргарита',  price:890,   emoji:'📚' },
+  { id:'p8',  name:'Рюкзак городской',    price:3990,  emoji:'🎒' },
+  { id:'p9',  name:'Умные часы',          price:15990, emoji:'⌚' },
+  { id:'p10', name:'Плед пушистый',       price:1990,  emoji:'🛏️' },
+  { id:'p11', name:'Пылесос-робот',       price:34990, emoji:'🤖' },
+  { id:'p12', name:'Кружка керамическая', price:590,   emoji:'🍵' },
 ];
 const PRODUCT_MAP = Object.fromEntries(PRODUCTS.map(p => [p.id, p]));
 
@@ -227,7 +223,7 @@ function toast(msg, type){
 function openModal(id){ document.getElementById(id).classList.add('show'); }
 function closeModal(id){ document.getElementById(id).classList.remove('show'); }
 
-/* ================= ГЕНЕРАЦИЯ ЛОГИНА/ПАРОЛЯ ПВЗ ================= */
+/* ================= ГЕНЕРАЦИЯ ЛОГИНА/ПАРОЛЯ ================= */
 function genPassword(len=8){
   const chars = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
   let p = '';
@@ -246,12 +242,12 @@ async function generateUniqueLogin(){
 /* ================= СОСТОЯНИЕ ================= */
 const state = { phone:null, user:null, tab:'shop', pvzList:{}, applications:{}, selectedPvzId:null };
 const loginState = { step:'phone', phone:null, mode:null, pinFirst:null, error:'' };
-let unsubUser=null, unsubPvz=null, unsubApps=null;
-let renderPending=false;
+let unsubUser = null, unsubPvz = null, unsubApps = null;
+let renderPending = false;
 function renderSoon(){
   if (renderPending) return;
   renderPending = true;
-  requestAnimationFrame(()=>{ renderPending=false; render(); });
+  requestAnimationFrame(()=>{ renderPending = false; render(); });
 }
 
 /* ================= АВТОРИЗАЦИЯ ================= */
@@ -321,33 +317,58 @@ function renderLogin(){
     document.getElementById('btnBack').onclick = () => { loginState.step='phone'; loginState.error=''; render(); };
   }
 }
+
 function doLogin(phone){
   localStorage.setItem('mkt_phone', phone);
   state.phone = phone; state.tab = 'shop';
   subscribeUser(phone);
 }
+
 function subscribeUser(phone){
-  if (unsubUser){ unsubUser(); unsubUser = null; }
-  unsubUser = db.ref('users/'+phone).on('value', snap => {
+  // Снимаем ВСЕ прежние подписки через off()
+  if (unsubUser){ try { unsubUser(); } catch(e){ console.warn(e); } unsubUser = null; }
+  if (unsubPvz){ try { unsubPvz(); } catch(e){ console.warn(e); } unsubPvz = null; }
+  if (unsubApps){ try { unsubApps(); } catch(e){ console.warn(e); } unsubApps = null; }
+
+  // users/{phone}
+  const userRef = db.ref('users/'+phone);
+  const userCb = snap => {
     if (!snap.exists()){ logout(); return; }
-    state.user = snap.val(); renderSoon();
-  });
-  if (unsubPvz) unsubPvz();
-  unsubPvz = db.ref('pvz').on('value', snap => { state.pvzList = snap.val() || {}; renderSoon(); });
+    state.user = snap.val();
+    renderSoon();
+  };
+  userRef.on('value', userCb);
+  unsubUser = () => userRef.off('value', userCb);
+
+  // pvz (список активных ПВЗ)
+  const pvzRef = db.ref('pvz');
+  const pvzCb = snap => {
+    state.pvzList = snap.val() || {};
+    renderSoon();
+  };
+  pvzRef.on('value', pvzCb);
+  unsubPvz = () => pvzRef.off('value', pvzCb);
+
+  // pvzApplications (только для админа)
   if (phone === ADMIN_PHONE){
-    if (unsubApps) unsubApps();
-    unsubApps = db.ref('pvzApplications').on('value', snap => {
+    const appsRef = db.ref('pvzApplications');
+    const appsCb = snap => {
       state.applications = snap.val() || {};
       if (state.tab === 'admin') renderSoon();
-    });
+    };
+    appsRef.on('value', appsCb);
+    unsubApps = () => appsRef.off('value', appsCb);
   }
 }
+
 function logout(){
-  if (unsubUser){ unsubUser(); unsubUser=null; }
-  if (unsubPvz){ unsubPvz(); unsubPvz=null; }
-  if (unsubApps){ unsubApps(); unsubApps=null; }
+  if (unsubUser){ try { unsubUser(); } catch(e){ console.warn(e); } unsubUser = null; }
+  if (unsubPvz){ try { unsubPvz(); } catch(e){ console.warn(e); } unsubPvz = null; }
+  if (unsubApps){ try { unsubApps(); } catch(e){ console.warn(e); } unsubApps = null; }
+
   localStorage.removeItem('mkt_phone');
-  state.phone=null; state.user=null; state.tab='shop'; state.pvzList={}; state.applications={};
+  state.phone = null; state.user = null; state.tab = 'shop';
+  state.pvzList = {}; state.applications = {}; state.selectedPvzId = null;
   Object.assign(loginState, { step:'phone', phone:null, mode:null, pinFirst:null, error:'' });
   render();
 }
@@ -448,9 +469,8 @@ async function approvePvz(appId){
   updates['pvzApplications/'+appId+'/login'] = login;
   updates['pvzApplications/'+appId+'/password'] = password;
   updates['users/'+app.phone+'/pvzApp'] = {
-    ...(app.ts ? { ts: app.ts } : {}),
     name: app.name, address: app.address, schedule: app.schedule,
-    status: 'approved', login, password, pvzId
+    status: 'approved', login, password, pvzId, ts: app.ts
   };
   await db.ref().update(updates);
   toast('ПВЗ одобрен. Логин: ' + login, 'ok');
@@ -587,7 +607,7 @@ function viewProfile(isAdmin){
   if (pa && pa.status === 'pending'){
     pvzBlock = `<div class="card">
       <h3>Заявка на ПВЗ</h3>
-      <div class="row" style="display:flex;justify-content:space-between;margin-bottom:6px">
+      <div style="display:flex;justify-content:space-between;margin-bottom:6px">
         <span class="muted">Статус</span><span class="badge pending">На рассмотрении</span>
       </div>
       <div class="muted small">Название: ${esc(pa.name)}</div>
@@ -598,6 +618,7 @@ function viewProfile(isAdmin){
     pvzBlock = `<div class="card">
       <h3>ПВЗ одобрен</h3>
       <div class="muted small" style="margin-bottom:8px">${esc(pa.name)} · ${esc(pa.address)}</div>
+      <div class="muted small" style="margin-bottom:8px">🕒 ${esc(pa.schedule||'—')}</div>
       <div class="creds-box">
         <div class="row"><span>Логин:</span><b>${esc(pa.login)}</b></div>
         <div class="row"><span>Пароль:</span><b>${esc(pa.password)}</b></div>
@@ -607,14 +628,14 @@ function viewProfile(isAdmin){
   } else if (pa && pa.status === 'rejected'){
     pvzBlock = `<div class="card">
       <h3>Заявка отклонена</h3>
-      <p class="muted small" style="margin:0 0 10px">Вы можете подать заявку снова.</p>
+      <p class="muted small" style="margin:0">Вы можете подать заявку снова.</p>
     </div>`;
   }
 
   return `<h2>Профиль</h2>
     <div class="card">
-      <div class="row" style="display:flex;justify-content:space-between;margin-bottom:8px"><span class="muted">Телефон</span><b>${esc(state.phone)}</b></div>
-      <div class="row" style="display:flex;justify-content:space-between"><span class="muted">Роль</span>
+      <div style="display:flex;justify-content:space-between;margin-bottom:8px"><span class="muted">Телефон</span><b>${esc(state.phone)}</b></div>
+      <div style="display:flex;justify-content:space-between"><span class="muted">Роль</span>
         <b>${isAdmin ? 'Администратор' : (pa && pa.status === 'approved' ? 'Клиент + ПВЗ' : 'Клиент')}</b></div>
     </div>
     ${pvzBlock}
@@ -657,7 +678,7 @@ function viewAdmin(){
         <div class="app-row">
           <div class="app-head">
             <b>${esc(a.name)}</b>
-            <span class="badge ${a.status}">${a.status==='approved'?'Одобрена':'Отклонена'}</span>
+            <span class="badge ${a.status}">${a.status==='approved'?'Одобрена':a.status==='rejected'?'Отклонена':esc(a.status)}</span>
           </div>
           <div class="address">📍 ${esc(a.address)}</div>
           <div class="schedule">🕒 ${esc(a.schedule||'—')}</div>
@@ -684,7 +705,7 @@ function viewAdmin(){
     </div>`;
 }
 
-/* ================= ПРИВЯЗКА ================= */
+/* ================= ПРИВЯЗКА КО ВЬЮ ================= */
 function bindView(){
   const $ = id => document.getElementById(id);
   if ($('btnLogout')) $('btnLogout').onclick = logout;
@@ -755,7 +776,7 @@ function showOrderQr(orderId){
   openModal('orderQrModal');
 }
 
-/* ================= ДЕЛЕГАТ ================= */
+/* ================= ДЕЛЕГАТ СОБЫТИЙ ================= */
 document.addEventListener('click', async (e) => {
   const closeBtn = e.target.closest('[data-close]');
   if (closeBtn){ closeModal(closeBtn.dataset.close); return; }
