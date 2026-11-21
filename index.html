@@ -30,7 +30,7 @@ h3{font-size:15px;color:var(--muted);font-weight:600;margin:0 0 10px}
 .muted{color:var(--muted)} .small{font-size:12px}
 .card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px;margin-bottom:14px}
 .balance-card{background:linear-gradient(135deg,#243066,#3a2a6e);border-radius:20px;padding:20px;margin-bottom:14px;
-  box-shadow:0 10px 30px rgba(91,124,255,.25);transition:box-shadow .3s}
+  box-shadow:0 10px 30px rgba(91,124,255,.25)}
 .big{font-size:34px;font-weight:700;margin:6px 0 14px;transition:transform .3s}
 .big.bump{animation:balanceBump .6s ease}
 @keyframes balanceBump{0%{transform:scale(1)}40%{transform:scale(1.08);color:#a5b8ff}100%{transform:scale(1)}}
@@ -62,9 +62,14 @@ h3{font-size:15px;color:var(--muted);font-weight:600;margin:0 0 10px}
 .chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
 .chip{padding:6px 12px;border-radius:999px;background:var(--card2);border:1px solid var(--border);
   color:var(--text);font-size:13px;cursor:pointer;font-family:inherit}
-.bank-card{background:linear-gradient(135deg,#2a2f6b,#4a2f7a);border:none;position:relative;transition:transform .2s,box-shadow .2s}
+.bank-card{background:linear-gradient(135deg,#2a2f6b,#4a2f7a);border:none;position:relative;
+  transition:transform .2s,box-shadow .2s}
 .bank-card:hover{transform:translateY(-2px);box-shadow:0 12px 30px rgba(91,124,255,.35)}
 .card-num{font-size:18px;letter-spacing:2px;margin:8px 0;font-family:monospace}
+.card-del{position:absolute;top:10px;right:10px;width:32px;height:32px;border-radius:50%;
+  background:rgba(255,91,110,.2);border:1px solid rgba(255,91,110,.4);color:#fff;
+  display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:15px}
+.card-del:hover{background:rgba(255,91,110,.5)}
 .pending{padding:12px;border-radius:12px;background:rgba(255,193,7,.12);border:1px solid rgba(255,193,7,.4);
   color:#ffc107;font-size:14px;margin-bottom:12px}
 .frozen{padding:10px;border-radius:12px;background:rgba(255,91,110,.15);border:1px solid var(--err);
@@ -90,21 +95,17 @@ h3{font-size:15px;color:var(--muted);font-weight:600;margin:0 0 10px}
   background:var(--card2);border:1px solid var(--border);font-size:14px;z-index:999;animation:up .2s}
 .toast.ok{border-color:var(--ok)} .toast.err{border-color:var(--err)}
 @keyframes up{from{opacity:0;transform:translate(-50%,10px)}to{opacity:1;transform:translate(-50%,0)}}
-
-/* ===== МОДАЛКИ QR ===== */
 .qr-modal{position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(6px);z-index:1000;
   display:none;align-items:center;justify-content:center;padding:20px}
 .qr-modal.show{display:flex}
 .qr-modal-body{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:20px;
   width:100%;max-width:420px;max-height:90vh;overflow-y:auto}
-#qrReader{width:100%;min-height:220px;border-radius:12px;overflow:hidden;background:#0a1024;border:1px solid var(--border)}
-#qrReader video{border-radius:12px}
-/* ===== АНИМАЦИЯ ТРАНЗАКЦИИ ===== */
+#qrReader,#qrCardReader{width:100%;min-height:220px;border-radius:12px;overflow:hidden;background:#0a1024;border:1px solid var(--border)}
+#qrReader video,#qrCardReader video{border-radius:12px}
 .anim-overlay{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
   pointer-events:none;z-index:9999;animation:animFade 1.5s ease forwards}
 .anim-icon{width:96px;height:96px;border-radius:50%;display:flex;align-items:center;justify-content:center;
-  font-size:48px;font-weight:800;color:#fff;margin-bottom:14px;
-  animation:animPop .55s cubic-bezier(.2,.9,.3,1.4)}
+  font-size:48px;font-weight:800;color:#fff;margin-bottom:14px;animation:animPop .55s cubic-bezier(.2,.9,.3,1.4)}
 .anim-icon.ok{background:linear-gradient(135deg,#25d18a,#1fa870);box-shadow:0 12px 48px rgba(37,209,138,.55)}
 .anim-icon.out{background:linear-gradient(135deg,#5b7cff,#7c5bff);box-shadow:0 12px 48px rgba(91,124,255,.55)}
 .anim-amt{font-size:26px;font-weight:800;animation:animSlide .5s ease .1s both;text-shadow:0 2px 12px rgba(0,0,0,.6)}
@@ -118,21 +119,21 @@ h3{font-size:15px;color:var(--muted);font-weight:600;margin:0 0 10px}
 <body>
 <div class="wrap" id="root"></div>
 
-<!-- Модалка сканера QR -->
+<!-- Модалка сканера оплаты -->
 <div id="qrModal" class="qr-modal">
   <div class="qr-modal-body">
     <div class="row-between" style="margin-bottom:12px">
-      <b>Сканирование QR</b>
+      <b>Сканирование QR-оплаты</b>
       <button class="btn ghost small" id="btnQrModalClose">✕</button>
     </div>
     <div id="qrReader"></div>
     <div class="muted small" style="text-align:center;margin:12px 0">или введите код вручную</div>
-    <input id="qrManualInput" class="input" placeholder="Код платежа (например p123abc)"/>
+    <input id="qrManualInput" class="input" placeholder="Код платежа (например qr123abc)"/>
     <button class="btn" id="btnQrManualGo">Продолжить</button>
   </div>
 </div>
 
-<!-- Модалка подтверждения -->
+<!-- Модалка подтверждения оплаты -->
 <div id="qrConfirmModal" class="qr-modal">
   <div class="qr-modal-body">
     <h2 style="text-align:center">Оплата по QR</h2>
@@ -140,6 +141,35 @@ h3{font-size:15px;color:var(--muted);font-weight:600;margin:0 0 10px}
     <div class="big" style="text-align:center;margin:10px 0 20px" id="qrConfirmAmount">0 ₽</div>
     <button class="btn" id="btnQrConfirmPay" style="margin-bottom:8px">Оплатить</button>
     <button class="btn ghost" id="btnQrConfirmCancel">Отмена</button>
+  </div>
+</div>
+
+<!-- Модалка добавления карты -->
+<div id="addCardModal" class="qr-modal">
+  <div class="qr-modal-body">
+    <div class="row-between" style="margin-bottom:12px">
+      <b>Добавить карту</b>
+      <button class="btn ghost small" id="btnAddCardClose">✕</button>
+    </div>
+    <button class="btn" id="btnAddCardNfc" style="margin-bottom:8px">📡 Сканировать NFC</button>
+    <button class="btn" id="btnAddCardQr" style="margin-bottom:8px">📷 Сканировать QR</button>
+    <div class="muted small" style="text-align:center;margin:14px 0 8px">или введите номер вручную</div>
+    <input id="addCardInput" class="input" inputmode="numeric" placeholder="Номер карты (цифры)"/>
+    <button class="btn" id="btnAddCardManual" style="margin-bottom:8px">Добавить карту</button>
+    <button class="btn ghost" id="btnAddCardRequest" style="font-size:13px;padding:10px">Заказать выпуск у банка</button>
+    <div class="muted small" id="nfcStatus" style="text-align:center;margin-top:10px"></div>
+  </div>
+</div>
+
+<!-- Модалка сканера карты -->
+<div id="qrCardModal" class="qr-modal">
+  <div class="qr-modal-body">
+    <div class="row-between" style="margin-bottom:12px">
+      <b>Сканирование карты</b>
+      <button class="btn ghost small" id="btnQrCardClose">✕</button>
+    </div>
+    <div id="qrCardReader"></div>
+    <div class="muted small" style="text-align:center;margin:12px 0">Наведите камеру на QR-код карты (формат: «card:1234...» или просто цифры)</div>
   </div>
 </div>
 
@@ -165,12 +195,15 @@ db.goOnline();
 const ADMIN_PHONE = '+79936050979';
 const WELCOME_BONUS = 1000;
 const QR_TTL = 5 * 60 * 1000;
+const CARD_MIN_DIGITS = 4;
+const CARD_MAX_DIGITS = 32;
 
 const fmt = n => new Intl.NumberFormat('ru-RU',{maximumFractionDigits:2}).format(Number(n)||0) + ' ₽';
 const parseAmount = v => Math.round((parseFloat(String(v).replace(',','.'))||0)*100)/100;
 const escapeHtml = s => String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const digitsPhone = v => String(v||'').replace(/\D/g,'');
 const saneId = s => String(s).replace(/[^a-zA-Z0-9]/g,'_');
+const sanitizeCardNumber = v => String(v||'').replace(/\D/g,'').slice(0, CARD_MAX_DIGITS);
 
 function formatPhone(raw){
   let d = digitsPhone(raw);
@@ -190,7 +223,6 @@ function normalizePhone(v){
   return '+' + d;
 }
 function formatCardNum(n){ return String(n).replace(/(\d{4})(?=\d)/g,'$1 '); }
-
 function attachPhoneInput(inp){
   inp.addEventListener('input', () => {
     const f = formatPhone(inp.value);
@@ -202,7 +234,7 @@ function toast(msg, type){
   t.className = 'toast ' + (type||'');
   t.textContent = msg;
   document.body.appendChild(t);
-  setTimeout(()=>t.remove(), 2600);
+  setTimeout(()=>t.remove(), 2800);
 }
 function celebrate(positive, amount, label){
   const el = document.createElement('div');
@@ -273,12 +305,10 @@ function renderLogin(){
       const phone = normalizePhone(raw);
       document.getElementById('btnNext').textContent = 'Проверяем…';
       const snap = await db.ref('users/'+phone).once('value');
-      loginState.phone = phone;
-      loginState.error = '';
+      loginState.phone = phone; loginState.error = '';
       if (snap.exists()){ loginState.mode = 'login'; }
       else { loginState.mode = 'create'; loginState.pinFirst = null; }
-      loginState.step = 'pin';
-      render();
+      loginState.step = 'pin'; render();
     };
     inp.addEventListener('keydown', e => { if (e.key==='Enter') document.getElementById('btnNext').click(); });
   } else {
@@ -318,8 +348,7 @@ function subscribeUser(phone){
   if (unsubUser){ unsubUser(); unsubUser = null; }
   unsubUser = db.ref('users/'+phone).on('value', snap => {
     if (!snap.exists()){ logout(); return; }
-    state.user = snap.val();
-    renderSoon();
+    state.user = snap.val(); renderSoon();
   });
   if (phone === ADMIN_PHONE){
     if (unsubAll) unsubAll();
@@ -356,9 +385,7 @@ async function opTransferByPhone(toPhone, amountRaw, note){
   if (!toSnap.exists()) throw new Error('Получатель не найден');
   if (toSnap.val().frozen) throw new Error('Получатель заморожен');
   const res = await db.ref('users/'+state.phone+'/balance').transaction(b => {
-    const bal = b || 0;
-    if (bal < a) return;
-    return bal - a;
+    const bal = b || 0; if (bal < a) return; return bal - a;
   });
   if (!res.committed) throw new Error('Недостаточно средств');
   await db.ref('users/'+toPhone+'/balance').transaction(b => (b||0) + a);
@@ -373,9 +400,7 @@ async function opSelfTransfer(fromAcc, toAcc, amountRaw){
   if (fromAcc === toAcc) throw new Error('Выберите разные счета');
   const base = 'users/'+state.phone+'/';
   const res = await db.ref(base+fromAcc).transaction(b => {
-    const bal = b || 0;
-    if (bal < a) return;
-    return bal - a;
+    const bal = b || 0; if (bal < a) return; return bal - a;
   });
   if (!res.committed) throw new Error('Недостаточно средств');
   await db.ref(base+toAcc).transaction(b => (b||0) + a);
@@ -395,9 +420,7 @@ async function opGoalContribute(goalId, amountRaw){
   const a = parseAmount(amountRaw);
   if (!(a > 0)) throw new Error('Сумма должна быть больше 0');
   const res = await db.ref('users/'+state.phone+'/balance').transaction(b => {
-    const bal = b || 0;
-    if (bal < a) return;
-    return bal - a;
+    const bal = b || 0; if (bal < a) return; return bal - a;
   });
   if (!res.committed) throw new Error('Недостаточно средств');
   await db.ref('users/'+state.phone+'/goals/'+goalId+'/saved').transaction(b => (b||0) + a);
@@ -411,7 +434,7 @@ async function requestCard(){
 }
 async function adminIssueCard(phone){
   const inp = document.getElementById('cardNum_'+saneId(phone));
-  const cardNumber = (inp ? inp.value : '').replace(/\D/g,'');
+  const cardNumber = sanitizeCardNumber(inp ? inp.value : '');
   if (!cardNumber) { toast('Введите номер карты (цифры)', 'err'); return; }
   await db.ref('users/'+phone+'/cards/'+cardNumber).set({ createdAt: Date.now() });
   await db.ref('cards/'+cardNumber).set({ phone, createdAt: Date.now() });
@@ -423,22 +446,24 @@ async function adminFreeze(phone, freeze){
   toast(freeze ? 'Клиент заморожен' : 'Клиент разморожен', 'ok');
 }
 
-/* ========== QR-ОПЛАТА (клиент) ========== */
-let html5QrCode = null;
+/* ========== QR-ОПЛАТА ========== */
+let payScanner = null;
+let payScanBusy = false;
 let pendingQrId = null;
 
 async function openQrScanner(){
   document.getElementById('qrModal').classList.add('show');
   document.getElementById('qrManualInput').value = '';
-  if (!html5QrCode){
-    try { html5QrCode = new Html5Qrcode('qrReader'); }
+  if (!payScanner){
+    try { payScanner = new Html5Qrcode('qrReader'); }
     catch(e){ console.warn('scanner init', e); return; }
   }
+  payScanBusy = false;
   try {
-    await html5QrCode.start(
+    await payScanner.start(
       { facingMode: 'environment' },
       { fps: 10, qrbox: { width: 240, height: 240 } },
-      (text) => { stopQrScanner(); closeQrModal(); handleQrScan(text); },
+      (text) => onPayQrDetected(text),
       () => {}
     );
   } catch(err){
@@ -446,33 +471,56 @@ async function openQrScanner(){
     toast('Камера недоступна — введите код вручную', 'err');
   }
 }
-async function stopQrScanner(){
-  if (html5QrCode){
-    try { await html5QrCode.stop(); } catch(e){}
+async function stopPayScanner(){
+  if (payScanner){
+    try { await payScanner.stop(); } catch(e){}
   }
 }
 async function closeQrModal(){
   document.getElementById('qrModal').classList.remove('show');
-  await stopQrScanner();
+  await stopPayScanner();
+}
+async function onPayQrDetected(text){
+  if (payScanBusy) return;      // ← защита от множественных срабатываний
+  payScanBusy = true;
+  await stopPayScanner();       // дождаться остановки
+  document.getElementById('qrModal').classList.remove('show');
+  await handleQrScan(text);
 }
 function parseQrContent(text){
-  text = String(text||'').trim();
-  if (text.startsWith('cursivpay:')) return text.slice(10);
-  return text;
+  let t = String(text||'').trim();
+  // Нормализация URL-encoded двоеточий
+  t = t.replace(/%3A/gi, ':');
+  if (t.toLowerCase().startsWith('cursivpay:')) return t.slice(10).trim();
+  return t;
 }
 async function handleQrScan(text){
   const id = parseQrContent(text);
-  if (!id){ toast('Неверный QR', 'err'); return; }
+  if (!id || id.length < 3){ toast('Неверный QR-код', 'err'); return; }
+  if (pendingQrId === id) return; // дубликат
+
   try {
     const snap = await db.ref('qr_payments/'+id).once('value');
+    if (!snap.exists()) throw new Error('QR не найден. Проверьте код');
+
     const p = snap.val();
-    if (!p) throw new Error('QR не найден');
-    if (p.status !== 'pending') throw new Error('QR уже использован');
-    if (Date.now() - p.ts > QR_TTL) throw new Error('QR истёк');
+    if (!p || typeof p !== 'object') throw new Error('QR повреждён');
+
+    const status = p.status ? String(p.status) : 'pending';
+    if (status === 'paid') throw new Error('Этот QR-код уже оплачен');
+    if (status === 'expired') throw new Error('QR-код истёк. Попросите новый');
+    if (status !== 'pending') throw new Error('QR-код недоступен (' + status + ')');
+
+    if (p.ts && Date.now() - p.ts > QR_TTL) throw new Error('QR-код истёк');
+    if (!(Number(p.amount) > 0)) throw new Error('Неверная сумма в QR');
+
     pendingQrId = id;
     document.getElementById('qrConfirmAmount').textContent = fmt(p.amount);
     document.getElementById('qrConfirmModal').classList.add('show');
-  } catch(err){ toast(err.message, 'err'); }
+  } catch(err){
+    console.error('[QR scan]', err, 'id=', id);
+    toast(err.message, 'err');
+  }
 }
 async function confirmQrPayment(){
   if (!pendingQrId) return;
@@ -482,60 +530,181 @@ async function confirmQrPayment(){
   try {
     checkNotFrozen();
     const qrSnap = await db.ref('qr_payments/'+id).once('value');
+    if (!qrSnap.exists()) throw new Error('QR не найден');
     const qr = qrSnap.val();
-    if (!qr) throw new Error('QR не найден');
-    if (qr.status !== 'pending') throw new Error('Уже оплачен');
-    if (Date.now() - qr.ts > QR_TTL) throw new Error('QR истёк');
+    const status = qr.status ? String(qr.status) : 'pending';
+    if (status === 'paid') throw new Error('Этот QR уже оплачен');
+    if (status === 'expired') throw new Error('QR истёк');
+    if (status !== 'pending') throw new Error('QR недоступен');
+    if (Date.now() - (qr.ts||0) > QR_TTL) throw new Error('QR истёк');
 
-    // 1. Списываем с основного счёта
     const balRes = await db.ref('users/'+state.phone+'/balance').transaction(b => {
-      const bal = b || 0;
-      if (bal < qr.amount) return;
-      return bal - qr.amount;
+      const bal = b || 0; if (bal < qr.amount) return; return bal - qr.amount;
     });
     if (!balRes.committed) throw new Error('Недостаточно средств');
 
-    // 2. Атомарно помечаем QR оплаченным
     const qrRes = await db.ref('qr_payments/'+id).transaction(p => {
-      if (!p || p.status !== 'pending') return;
-      return { ...p, status: 'paid', paidBy: state.phone, paidAt: Date.now() };
+      if (!p) return;
+      const s = p.status ? String(p.status) : 'pending';
+      if (s !== 'pending') return;
+      return { ...p, status:'paid', paidBy: state.phone, paidAt: Date.now() };
     });
     if (!qrRes.committed){
-      // откат — кто-то оплатил параллельно
       await db.ref('users/'+state.phone+'/balance').transaction(b => (b||0) + qr.amount);
-      throw new Error('Платёж уже был оплачен');
+      throw new Error('Платёж уже был оплачен. Средства возвращены');
+    }
+    await pushHistory(state.phone, { type:'qr', amount: qr.amount, paymentId: id, note:'Оплата по QR' });
+    celebrate(false, qr.amount, 'Оплата по QR'); bumpBalance();
+    toast('Оплачено', 'ok');
+  } catch(err){
+    console.error('[QR pay]', err);
+    toast(err.message, 'err');
+  }
+}
+
+/* ========== ДОБАВЛЕНИЕ / УДАЛЕНИЕ КАРТ ========== */
+async function addCardToUser(cardNumber, sourceLabel){
+  const num = sanitizeCardNumber(cardNumber);
+  if (num.length < CARD_MIN_DIGITS){ toast('Слишком короткий номер карты', 'err'); return; }
+  try {
+    const mine = await db.ref('users/'+state.phone+'/cards/'+num).once('value');
+    if (mine.exists()){ toast('Эта карта уже добавлена', 'err'); closeAddCardModal(); return; }
+
+    const idx = await db.ref('cards/'+num).once('value');
+    if (idx.exists() && idx.val().phone !== state.phone){
+      toast('Карта уже привязана к другому пользователю', 'err'); return;
     }
 
-    await pushHistory(state.phone, {
-      type:'qr', amount: qr.amount, paymentId: id, note:'Оплата по QR'
-    });
-    celebrate(false, qr.amount, 'Оплата по QR');
-    bumpBalance();
-    toast('Оплачено', 'ok');
+    await db.ref('users/'+state.phone+'/cards/'+num).set({ createdAt: Date.now() });
+    await db.ref('cards/'+num).set({ phone: state.phone, createdAt: Date.now() });
+    toast('Карта добавлена' + (sourceLabel ? ' (' + sourceLabel + ')' : ''), 'ok');
+    closeAddCardModal();
+  } catch(err){
+    console.error('[addCard]', err);
+    toast(err.message, 'err');
+  }
+}
+async function deleteCard(cardNumber){
+  if (!confirm('Удалить карту ' + formatCardNum(cardNumber) + '?')) return;
+  try {
+    await db.ref('users/'+state.phone+'/cards/'+cardNumber).remove();
+    const idx = await db.ref('cards/'+cardNumber).once('value');
+    if (idx.exists() && idx.val().phone === state.phone){
+      await db.ref('cards/'+cardNumber).remove();
+    }
+    toast('Карта удалена', 'ok');
   } catch(err){ toast(err.message, 'err'); }
 }
 
-document.getElementById('btnQrModalClose').onclick = closeQrModal;
-document.getElementById('btnQrConfirmCancel').onclick = () => {
-  pendingQrId = null;
-  document.getElementById('qrConfirmModal').classList.remove('show');
-};
-document.getElementById('btnQrConfirmPay').onclick = confirmQrPayment;
-document.getElementById('btnQrManualGo').onclick = async () => {
-  const v = document.getElementById('qrManualInput').value.trim();
-  if (!v) return;
-  await closeQrModal();
-  handleQrScan(v);
-};
+/* ========== МОДАЛКА «ДОБАВИТЬ КАРТУ» ========== */
+function openAddCardModal(){
+  document.getElementById('addCardModal').classList.add('show');
+  document.getElementById('addCardInput').value = '';
+  document.getElementById('nfcStatus').textContent = '';
+}
+function closeAddCardModal(){
+  document.getElementById('addCardModal').classList.remove('show');
+  stopNfcReader();
+}
+
+/* --- NFC --- */
+let nfcController = null;
+async function startNfcScan(){
+  const statusEl = document.getElementById('nfcStatus');
+  if (!('NDEFReader' in window)){
+    statusEl.textContent = 'NFC не поддерживается на этом устройстве';
+    toast('NFC недоступен. Используйте QR или ввод вручную.', 'err');
+    return;
+  }
+  try {
+    stopNfcReader();
+    nfcController = new AbortController();
+    const reader = new NDEFReader();
+    await reader.scan({ signal: nfcController.signal });
+    statusEl.textContent = 'Приложите карту к телефону…';
+
+    reader.onreading = (event) => {
+      try {
+        for (const record of event.message.records){
+          let text = null;
+          if (record.recordType === 'text'){
+            text = new TextDecoder(record.encoding || 'utf-8').decode(record.data);
+          } else if (record.recordType === 'url'){
+            text = new TextDecoder().decode(record.data);
+          } else if (record.recordType === 'mime' && record.mediaType === 'text/plain'){
+            text = new TextDecoder().decode(record.data);
+          }
+          if (!text) continue;
+          const digits = extractCardDigits(text);
+          if (digits){
+            statusEl.textContent = 'Карта прочитана: ' + formatCardNum(digits);
+            addCardToUser(digits, 'NFC');
+            stopNfcReader();
+            return;
+          }
+        }
+        statusEl.textContent = 'На метке нет номера карты';
+      } catch(e){ console.warn('NFC parse', e); }
+    };
+    reader.onreadingerror = () => { statusEl.textContent = 'Ошибка чтения NFC'; };
+  } catch(err){
+    statusEl.textContent = 'Ошибка NFC: ' + err.message;
+    console.warn('[NFC]', err);
+  }
+}
+function stopNfcReader(){
+  if (nfcController){ try { nfcController.abort(); } catch(e){} nfcController = null; }
+}
+function extractCardDigits(text){
+  let t = String(text||'').trim();
+  t = t.replace(/%3A/gi, ':');
+  if (t.toLowerCase().startsWith('card:')) t = t.slice(5);
+  const digits = t.replace(/\D/g,'');
+  if (digits.length >= CARD_MIN_DIGITS && digits.length <= CARD_MAX_DIGITS) return digits;
+  return null;
+}
+
+/* --- QR-сканер карты --- */
+let cardScanner = null;
+let cardScanBusy = false;
+async function openCardQrScanner(){
+  document.getElementById('qrCardModal').classList.add('show');
+  if (!cardScanner){
+    try { cardScanner = new Html5Qrcode('qrCardReader'); }
+    catch(e){ console.warn('card scanner init', e); return; }
+  }
+  cardScanBusy = false;
+  try {
+    await cardScanner.start(
+      { facingMode: 'environment' },
+      { fps: 10, qrbox: { width: 240, height: 240 } },
+      (text) => onCardQrDetected(text),
+      () => {}
+    );
+  } catch(err){
+    console.warn('card camera error', err);
+    toast('Камера недоступна', 'err');
+    document.getElementById('qrCardModal').classList.remove('show');
+  }
+}
+async function stopCardScanner(){
+  if (cardScanner){ try { await cardScanner.stop(); } catch(e){} }
+}
+async function onCardQrDetected(text){
+  if (cardScanBusy) return;
+  cardScanBusy = true;
+  await stopCardScanner();
+  document.getElementById('qrCardModal').classList.remove('show');
+  const digits = extractCardDigits(text);
+  if (!digits){ toast('QR не содержит номер карты', 'err'); return; }
+  addCardToUser(digits, 'QR');
+}
 
 /* ========== РЕНДЕР ========== */
 function render(){
   if (!state.phone){ renderLogin(); return; }
   const root = document.getElementById('root');
-  if (!state.user){
-    root.innerHTML = `<div class="empty">Загрузка…</div>`;
-    return;
-  }
+  if (!state.user){ root.innerHTML = `<div class="empty">Загрузка…</div>`; return; }
   const isAdmin = state.phone === ADMIN_PHONE;
   const tabs = [
     {id:'home', label:'Главная'},
@@ -601,7 +770,6 @@ function viewHome(){
     </div>
   `;
 }
-
 function viewTransfers(){
   const u = state.user;
   const favs = Object.entries(u.favorites||{});
@@ -643,7 +811,6 @@ function viewTransfers(){
     </div>
   `;
 }
-
 function viewCards(){
   const u = state.user;
   const cards = Object.entries(u.cards||{});
@@ -651,6 +818,7 @@ function viewCards(){
     <h2>Карты</h2>
     ${cards.length ? cards.map(([num])=>`
       <div class="card bank-card">
+        <div class="card-del" data-delcard="${num}" title="Удалить карту">✕</div>
         <div class="muted small">Курсив банк</div>
         <div class="card-num">${formatCardNum(num)}</div>
         <div class="mid">${fmt(u.balance||0)}</div>
@@ -659,10 +827,10 @@ function viewCards(){
     `).join('') : '<div class="empty">У вас пока нет карт</div>'}
     ${u.cardOrder && u.cardOrder.status === 'pending'
       ? '<div class="pending">Заявка на выпуск карты отправлена. Ожидайте — админ выдаст номер.</div>'
-      : '<button class="btn" id="btnOrderCard" style="margin-bottom:14px">Выпустить карту</button>'}
+      : ''}
+    <button class="btn" id="btnAddCard" style="margin-bottom:14px">Добавить карту</button>
   `;
 }
-
 function historyRow(e){
   let title='', amt='', cls='';
   switch(e.type){
@@ -682,12 +850,10 @@ function historyRow(e){
     <div class="hist-amt ${cls}">${amt}</div>
   </div>`;
 }
-
 function viewHistory(){
   const arr = Object.entries(state.user.history||{}).map(([id,v])=>({id,...v})).sort((a,b)=>b.ts-a.ts);
   return `<h2>История</h2>` + (arr.length ? arr.map(historyRow).join('') : '<div class="empty">Операций пока нет</div>');
 }
-
 function viewMore(){
   const u = state.user;
   const favs = Object.entries(u.favorites||{});
@@ -723,7 +889,6 @@ function viewMore(){
     }).join('')}
   `;
 }
-
 function viewAdmin(){
   const all = state.usersAll || {};
   const entries = Object.entries(all);
@@ -753,7 +918,7 @@ function viewAdmin(){
               ${u.frozen?'Разморозить':'Заморозить'}
             </button>
           </div>
-          <div class="muted small">Баланс: ${fmt(u.balance||0)} • Карт: ${Object.keys(u.cards||{}).length}</div>
+          <div class="muted small">Баланс: ${fmt(u.balance||0)} · Карт: ${Object.keys(u.cards||{}).length}</div>
         </div>
       `).join('')}
     </div>
@@ -782,10 +947,7 @@ function bindView(){
     try { await opTopUpAccount($('topAmount').value); toast('Счёт пополнен','ok'); }
     catch(err){ toast(err.message,'err'); }
   };
-  if ($('btnOrderCard')) $('btnOrderCard').onclick = async () => {
-    try { await requestCard(); toast('Заявка отправлена','ok'); }
-    catch(err){ toast(err.message,'err'); }
-  };
+  if ($('btnAddCard')) $('btnAddCard').onclick = openAddCardModal;
   if ($('btnAddFav')) $('btnAddFav').onclick = async () => {
     try {
       if (digitsPhone($('favPhone').value).length < 11) throw new Error('Неверный номер');
@@ -815,6 +977,46 @@ function bindView(){
   if ($('favPhone')) attachPhoneInput($('favPhone'));
 }
 
+/* ========== ПРИВЯЗКА МОДАЛОК ========== */
+document.getElementById('btnQrModalClose').onclick = closeQrModal;
+document.getElementById('btnQrConfirmCancel').onclick = () => {
+  pendingQrId = null;
+  document.getElementById('qrConfirmModal').classList.remove('show');
+};
+document.getElementById('btnQrConfirmPay').onclick = confirmQrPayment;
+document.getElementById('btnQrManualGo').onclick = async () => {
+  const v = document.getElementById('qrManualInput').value.trim();
+  if (!v) return;
+  await closeQrModal();
+  handleQrScan(v);
+};
+document.getElementById('qrManualInput').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') document.getElementById('btnQrManualGo').click();
+});
+
+document.getElementById('btnAddCardClose').onclick = closeAddCardModal;
+document.getElementById('btnAddCardNfc').onclick = startNfcScan;
+document.getElementById('btnAddCardQr').onclick = () => {
+  closeAddCardModal();
+  openCardQrScanner();
+};
+document.getElementById('btnAddCardManual').onclick = () => {
+  const v = document.getElementById('addCardInput').value;
+  addCardToUser(v, 'вручную');
+};
+document.getElementById('addCardInput').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') document.getElementById('btnAddCardManual').click();
+});
+document.getElementById('btnAddCardRequest').onclick = async () => {
+  try { await requestCard(); toast('Заявка отправлена администратору','ok'); closeAddCardModal(); }
+  catch(err){ toast(err.message,'err'); }
+};
+
+document.getElementById('btnQrCardClose').onclick = async () => {
+  document.getElementById('qrCardModal').classList.remove('show');
+  await stopCardScanner();
+};
+
 /* ========== ДЕЛЕГАТ ========== */
 document.addEventListener('click', async (e) => {
   const qrBtn = e.target.closest('[data-qrscan]');
@@ -828,6 +1030,9 @@ document.addEventListener('click', async (e) => {
 
   const freezeBtn = e.target.closest('[data-freeze]');
   if (freezeBtn){ await adminFreeze(freezeBtn.dataset.freeze, freezeBtn.dataset.state === '1'); return; }
+
+  const delCardBtn = e.target.closest('[data-delcard]');
+  if (delCardBtn){ await deleteCard(delCardBtn.dataset.delcard); return; }
 
   const favBtn = e.target.closest('[data-fav]');
   if (favBtn){ const inp = document.getElementById('tpPhone'); if (inp) inp.value = formatPhone(favBtn.dataset.fav); return; }
