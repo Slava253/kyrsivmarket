@@ -32,8 +32,10 @@ h3{font-size:15px;color:var(--muted);font-weight:600;margin:0 0 10px}
 .muted{color:var(--muted)} .small{font-size:12px}
 .card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px;margin-bottom:14px}
 .balance-card{background:linear-gradient(135deg,#243066,#3a2a6e);border-radius:20px;padding:20px;margin-bottom:14px;
-  box-shadow:0 10px 30px rgba(91,124,255,.25)}
-.big{font-size:34px;font-weight:700;margin:6px 0 14px}
+  box-shadow:0 10px 30px rgba(91,124,255,.25);transition:box-shadow .3s}
+.big{font-size:34px;font-weight:700;margin:6px 0 14px;transition:transform .3s}
+.big.bump{animation:balanceBump .6s ease}
+@keyframes balanceBump{0%{transform:scale(1)}40%{transform:scale(1.08);color:#a5b8ff}100%{transform:scale(1)}}
 .mid{font-size:18px;font-weight:600}
 .row{display:flex;gap:24px}
 .row-between{display:flex;justify-content:space-between;align-items:center;gap:10px}
@@ -43,8 +45,9 @@ h3{font-size:15px;color:var(--muted);font-weight:600;margin:0 0 10px}
 .input:focus{border-color:var(--accent)}
 .pin{letter-spacing:14px;text-align:center;font-size:24px}
 .btn{width:100%;padding:13px;border-radius:12px;border:none;cursor:pointer;font-size:15px;font-weight:600;
-  background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;font-family:inherit}
-.btn:active{transform:scale(.99)}
+  background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;font-family:inherit;
+  transition:transform .1s}
+.btn:active{transform:scale(.98)}
 .btn.ghost{background:transparent;border:1px solid var(--border);color:var(--muted)}
 .btn.small{width:auto;padding:7px 12px;font-size:13px;border-radius:10px}
 .btn.ok{background:var(--ok)} .btn.err{background:var(--err)}
@@ -61,14 +64,17 @@ h3{font-size:15px;color:var(--muted);font-weight:600;margin:0 0 10px}
 .chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
 .chip{padding:6px 12px;border-radius:999px;background:var(--card2);border:1px solid var(--border);
   color:var(--text);font-size:13px;cursor:pointer;font-family:inherit}
-.bank-card{background:linear-gradient(135deg,#2a2f6b,#4a2f7a);border:none;position:relative}
+.bank-card{background:linear-gradient(135deg,#2a2f6b,#4a2f7a);border:none;position:relative;transition:transform .2s,box-shadow .2s}
+.bank-card:hover{transform:translateY(-2px);box-shadow:0 12px 30px rgba(91,124,255,.35)}
 .card-num{font-size:18px;letter-spacing:2px;margin:8px 0;font-family:monospace}
 .pending{padding:12px;border-radius:12px;background:rgba(255,193,7,.12);border:1px solid rgba(255,193,7,.4);
   color:#ffc107;font-size:14px;margin-bottom:12px}
 .frozen{padding:10px;border-radius:12px;background:rgba(255,91,110,.15);border:1px solid var(--err);
   color:var(--err);font-size:14px;margin-top:12px;text-align:center}
 .empty{padding:30px;text-align:center;color:var(--muted)}
-.hist-row{display:flex;align-items:center;gap:12px;padding:12px;background:var(--card);border-radius:14px;margin-bottom:8px}
+.hist-row{display:flex;align-items:center;gap:12px;padding:12px;background:var(--card);border-radius:14px;margin-bottom:8px;
+  animation:histIn .3s ease}
+@keyframes histIn{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:translateX(0)}}
 .hist-icon{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;
   background:var(--card2);font-size:16px;flex-shrink:0}
 .hist-icon.pos{background:rgba(37,209,138,.15);color:var(--ok)}
@@ -77,7 +83,7 @@ h3{font-size:15px;color:var(--muted);font-weight:600;margin:0 0 10px}
 .hist-amt{font-weight:700;font-size:14px}
 .hist-amt.pos{color:var(--ok)} .hist-amt.neg{color:var(--err)}
 .progress{height:8px;border-radius:999px;background:#0f1530;overflow:hidden;margin:8px 0}
-.progress > div{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2))}
+.progress > div{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .5s}
 .badge{padding:3px 8px;border-radius:999px;font-size:11px;font-weight:600}
 .badge.ok{background:rgba(37,209,138,.15);color:var(--ok)}
 .badge.err{background:rgba(255,91,110,.15);color:var(--err)}
@@ -86,6 +92,21 @@ h3{font-size:15px;color:var(--muted);font-weight:600;margin:0 0 10px}
   background:var(--card2);border:1px solid var(--border);font-size:14px;z-index:999;animation:up .2s}
 .toast.ok{border-color:var(--ok)} .toast.err{border-color:var(--err)}
 @keyframes up{from{opacity:0;transform:translate(-50%,10px)}to{opacity:1;transform:translate(-50%,0)}}
+
+/* ===== АНИМАЦИЯ ТРАНЗАКЦИИ ===== */
+.anim-overlay{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  pointer-events:none;z-index:9999;animation:animFade 1.5s ease forwards}
+.anim-icon{width:96px;height:96px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-size:48px;font-weight:800;color:#fff;margin-bottom:14px;
+  animation:animPop .55s cubic-bezier(.2,.9,.3,1.4)}
+.anim-icon.ok{background:linear-gradient(135deg,#25d18a,#1fa870);box-shadow:0 12px 48px rgba(37,209,138,.55)}
+.anim-icon.out{background:linear-gradient(135deg,#5b7cff,#7c5bff);box-shadow:0 12px 48px rgba(91,124,255,.55)}
+.anim-amt{font-size:26px;font-weight:800;animation:animSlide .5s ease .1s both;text-shadow:0 2px 12px rgba(0,0,0,.6)}
+.anim-amt.pos{color:#5feeb4} .anim-amt.neg{color:#fff}
+.anim-label{color:var(--muted);font-size:13px;margin-top:6px;animation:animSlide .5s ease .2s both}
+@keyframes animFade{0%{opacity:0}15%{opacity:1}80%{opacity:1}100%{opacity:0}}
+@keyframes animPop{0%{transform:scale(0)}60%{transform:scale(1.15)}100%{transform:scale(1)}}
+@keyframes animSlide{0%{transform:translateY(16px);opacity:0}100%{transform:translateY(0);opacity:1}}
 </style>
 </head>
 <body>
@@ -155,6 +176,30 @@ function toast(msg, type){
   setTimeout(()=>t.remove(), 2600);
 }
 
+/* ========== АНИМАЦИЯ ТРАНЗАКЦИИ ========== */
+function celebrate(positive, amount, label){
+  const el = document.createElement('div');
+  el.className = 'anim-overlay';
+  el.innerHTML = `
+    <div class="anim-icon ${positive?'ok':'out'}">${positive?'✓':'↑'}</div>
+    <div class="anim-amt ${positive?'pos':'neg'}">${positive?'+':'−'}${fmt(amount)}</div>
+    <div class="anim-label">${escapeHtml(label||'Операция выполнена')}</div>
+  `;
+  document.body.appendChild(el);
+  setTimeout(()=>el.remove(), 1600);
+}
+
+function bumpBalance(){
+  // подсветим крупный баланс, если он есть на экране
+  setTimeout(() => {
+    const big = document.querySelector('.big');
+    if (big){
+      big.classList.add('bump');
+      setTimeout(()=>big.classList.remove('bump'), 700);
+    }
+  }, 100);
+}
+
 /* ========== СОСТОЯНИЕ ========== */
 const state = { phone:null, user:null, tab:'home', usersAll:null };
 const loginState = { step:'phone', phone:null, mode:null, pinFirst:null, error:'' };
@@ -179,7 +224,6 @@ function renderLogin(){
       <input id="phoneInput" class="input" inputmode="tel" placeholder="+7 999 123-45-67" autocomplete="off"/>
       <div class="err" id="err"></div>
       <button class="btn" id="btnNext">Продолжить</button>
-      <p class="muted small" style="margin-top:16px;text-align:center">Демо-номер админа: +7 993 605-09-79</p>
     `;
   } else {
     const isCreate = l.mode === 'create';
@@ -302,6 +346,8 @@ async function opTransferByPhone(toPhone, amountRaw, note){
   await db.ref('users/'+toPhone+'/balance').transaction(b => (b||0) + a);
   await pushHistory(state.phone, { type:'out', amount:a, to:toPhone, note: note||'' });
   await pushHistory(toPhone,      { type:'in',  amount:a, from:state.phone, note: note||'' });
+  celebrate(false, a, 'Перевод выполнен');
+  bumpBalance();
 }
 
 async function opSelfTransfer(fromAcc, toAcc, amountRaw){
@@ -318,21 +364,18 @@ async function opSelfTransfer(fromAcc, toAcc, amountRaw){
   if (!res.committed) throw new Error('Недостаточно средств');
   await db.ref(base+toAcc).transaction(b => (b||0) + a);
   await pushHistory(state.phone, { type:'self', amount:a, from:fromAcc, to:toAcc, note:'Между своими счетами' });
+  celebrate(false, a, 'Перевод между счетами');
+  bumpBalance();
 }
 
-async function opTopUpCard(cardNumber, amountRaw){
+async function opTopUpAccount(amountRaw){
   checkNotFrozen();
   const a = parseAmount(amountRaw);
   if (!(a > 0)) throw new Error('Сумма должна быть больше 0');
-  if (!state.user.cards || !state.user.cards[cardNumber]) throw new Error('Карта не найдена');
-  const res = await db.ref('users/'+state.phone+'/balance').transaction(b => {
-    const bal = b || 0;
-    if (bal < a) return;
-    return bal - a;
-  });
-  if (!res.committed) throw new Error('Недостаточно средств');
-  await db.ref('users/'+state.phone+'/cards/'+cardNumber+'/balance').transaction(b => (b||0) + a);
-  await pushHistory(state.phone, { type:'card_topup', amount:a, card:cardNumber, note:'Пополнение карты' });
+  await db.ref('users/'+state.phone+'/balance').transaction(b => (b||0) + a);
+  await pushHistory(state.phone, { type:'topup', amount:a, note:'Пополнение счёта' });
+  celebrate(true, a, 'Счёт пополнен');
+  bumpBalance();
 }
 
 async function opGoalContribute(goalId, amountRaw){
@@ -347,6 +390,8 @@ async function opGoalContribute(goalId, amountRaw){
   if (!res.committed) throw new Error('Недостаточно средств');
   await db.ref('users/'+state.phone+'/goals/'+goalId+'/saved').transaction(b => (b||0) + a);
   await pushHistory(state.phone, { type:'goal', amount:a, goalId, note:'Пополнение цели' });
+  celebrate(false, a, 'Отложено в цель');
+  bumpBalance();
 }
 
 async function requestCard(){
@@ -359,7 +404,7 @@ async function adminIssueCard(phone){
   const inp = document.getElementById('cardNum_'+saneId(phone));
   const cardNumber = (inp ? inp.value : '').replace(/\D/g,'');
   if (!cardNumber) { toast('Введите номер карты (цифры)', 'err'); return; }
-  await db.ref('users/'+phone+'/cards/'+cardNumber).set({ balance:0, createdAt: Date.now() });
+  await db.ref('users/'+phone+'/cards/'+cardNumber).set({ createdAt: Date.now() });
   await db.ref('cards/'+cardNumber).set({ phone, createdAt: Date.now() });
   await db.ref('users/'+phone+'/cardOrder').remove();
   toast('Карта выдана клиенту ' + phone, 'ok');
@@ -446,7 +491,6 @@ function viewHome(){
 
 function viewTransfers(){
   const u = state.user;
-  const cards = Object.keys(u.cards||{});
   const favs = Object.entries(u.favorites||{});
   return `
     <h2>Переводы</h2>
@@ -476,12 +520,10 @@ function viewTransfers(){
     </div>
 
     <div class="card">
-      <h3>Пополнить карту</h3>
-      ${cards.length ? `
-        <select id="topCard" class="input">${cards.map(n=>`<option value="${n}">${formatCardNum(n)}</option>`).join('')}</select>
-        <input id="topAmount" class="input" inputmode="decimal" placeholder="Сумма"/>
-        <button class="btn" id="btnTopUp">Пополнить</button>
-      ` : '<div class="muted small">Сначала выпустите карту во вкладке «Карты»</div>'}
+      <h3>Пополнить счёт</h3>
+      <p class="muted small" style="margin:0 0 10px">Деньги зачислятся на основной счёт и сразу отразятся на карте.</p>
+      <input id="topAmount" class="input" inputmode="decimal" placeholder="Сумма"/>
+      <button class="btn" id="btnTopUp">Пополнить</button>
     </div>
   `;
 }
@@ -491,11 +533,12 @@ function viewCards(){
   const cards = Object.entries(u.cards||{});
   return `
     <h2>Карты</h2>
-    ${cards.length ? cards.map(([num,c])=>`
+    ${cards.length ? cards.map(([num])=>`
       <div class="card bank-card">
         <div class="muted small">Курсив банк</div>
         <div class="card-num">${formatCardNum(num)}</div>
-        <div class="mid">${fmt(c.balance||0)}</div>
+        <div class="mid">${fmt(u.balance||0)}</div>
+        <div class="muted small">баланс основного счёта</div>
       </div>
     `).join('') : '<div class="empty">У вас пока нет карт</div>'}
     ${u.cardOrder && u.cardOrder.status === 'pending'
@@ -510,7 +553,7 @@ function historyRow(e){
     case 'out':        title='Перевод на '+ (e.to||''); amt='−'+fmt(e.amount); cls='neg'; break;
     case 'in':         title='Перевод от '+ (e.from||''); amt='+'+fmt(e.amount); cls='pos'; break;
     case 'self':       title='Между счетами'; amt=fmt(e.amount); cls=''; break;
-    case 'card_topup': title='Пополнение карты '+formatCardNum(e.card||''); amt='−'+fmt(e.amount); cls='neg'; break;
+    case 'topup':      title='Пополнение счёта'; amt='+'+fmt(e.amount); cls='pos'; break;
     case 'goal':       title='Пополнение цели'; amt='−'+fmt(e.amount); cls='neg'; break;
     case 'terminal':   title='Оплата в терминале'; amt='−'+fmt(e.amount); cls='neg'; break;
     default:           title=e.type||'Операция'; amt=fmt(e.amount||0);
@@ -625,7 +668,7 @@ function bindView(){
   }
 
   if ($('btnTopUp')) $('btnTopUp').onclick = async () => {
-    try { await opTopUpCard($('topCard').value, $('topAmount').value); toast('Карта пополнена','ok'); }
+    try { await opTopUpAccount($('topAmount').value); toast('Счёт пополнен','ok'); }
     catch(err){ toast(err.message,'err'); }
   };
 
