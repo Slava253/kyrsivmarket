@@ -7,7 +7,7 @@
 <style>
 :root{--bg:#0b1020;--card:#141b33;--card2:#1b2444;--text:#e8ecff;--muted:#8b95c2;
   --accent:#5b7cff;--accent2:#7c5bff;--ok:#25d18a;--err:#ff5b6e;--warn:#ffc107;
-  --blue:#5b9cff;--border:#26305a}
+  --blue:#5b9cff;--orange:#ff8a00;--border:#26305a}
 *{box-sizing:border-box}
 body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
   background:radial-gradient(1200px 800px at 20% -10%, #1a2350, #0b1020 60%);
@@ -31,6 +31,7 @@ h3{font-size:15px;color:var(--muted);font-weight:600;margin:0 0 10px}
   background:#0f1530;color:var(--text);font-size:15px;margin-bottom:10px;font-family:inherit;outline:none}
 .input:focus{border-color:var(--accent)}
 .pin{letter-spacing:14px;text-align:center;font-size:24px}
+.code-input{letter-spacing:8px;text-align:center;font-size:22px;font-family:monospace}
 .btn{width:100%;padding:13px;border-radius:12px;border:none;cursor:pointer;font-size:15px;font-weight:600;
   background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;font-family:inherit;transition:transform .1s}
 .btn:active{transform:scale(.98)}
@@ -72,9 +73,12 @@ h3{font-size:15px;color:var(--muted);font-weight:600;margin:0 0 10px}
 .badge.transit{background:rgba(91,156,255,.15);color:var(--blue)}
 .badge.ready{background:rgba(37,209,138,.15);color:var(--ok)}
 .badge.issued{background:rgba(139,149,194,.15);color:var(--muted)}
+.badge.returned{background:rgba(255,138,0,.15);color:var(--orange)}
 .badge.pending{background:rgba(255,193,7,.15);color:var(--warn)}
 .badge.approved{background:rgba(37,209,138,.15);color:var(--ok)}
 .badge.rejected{background:rgba(255,91,110,.15);color:var(--err)}
+.reason-box{padding:10px;border-radius:10px;background:rgba(255,138,0,.08);border:1px solid rgba(255,138,0,.3);
+  margin-top:8px;font-size:13px;color:#ffb366}
 .modal{position:fixed;inset:0;background:rgba(0,0,0,.8);backdrop-filter:blur(6px);z-index:1000;
   display:none;align-items:center;justify-content:center;padding:20px}
 .modal.show{display:flex}
@@ -118,8 +122,6 @@ h3{font-size:15px;color:var(--muted);font-weight:600;margin:0 0 10px}
 .nav-badge{background:var(--err);color:#fff;border-radius:999px;padding:1px 7px;font-size:11px;
   margin-left:4px;font-weight:700}
 .ord-meta{font-size:11px;color:var(--muted);margin-top:6px;word-break:break-all;font-family:monospace}
-.stat-pill{display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;
-  background:rgba(139,149,194,.15);color:var(--muted);margin-left:8px}
 </style>
 </head>
 <body>
@@ -240,12 +242,14 @@ function statusLabel(s){
   if (s === 'pending' || s === 'transit') return 'В пути';
   if (s === 'ready') return 'Готов к выдаче';
   if (s === 'issued') return 'Выдан';
+  if (s === 'returned') return 'Возвращён';
   return s || '—';
 }
 function statusClass(s){
   if (s === 'pending' || s === 'transit') return 'transit';
   if (s === 'ready') return 'ready';
   if (s === 'issued') return 'issued';
+  if (s === 'returned') return 'returned';
   return 'transit';
 }
 function getPvzCity(pvz){
@@ -369,7 +373,6 @@ function doLogin(phone){
   state.phone = phone; state.tab = 'shop';
   subscribeUser(phone);
 }
-
 function subscribeUser(phone){
   if (unsubUser){ try { unsubUser(); } catch(e){ console.warn(e); } unsubUser = null; }
   if (unsubPvz){ try { unsubPvz(); } catch(e){ console.warn(e); } unsubPvz = null; }
@@ -408,7 +411,6 @@ function subscribeUser(phone){
     unsubOrders = () => ordersRef.off('value', ordersCb);
   }
 }
-
 function logout(){
   if (unsubUser){ try { unsubUser(); } catch(e){ console.warn(e); } unsubUser = null; }
   if (unsubPvz){ try { unsubPvz(); } catch(e){ console.warn(e); } unsubPvz = null; }
@@ -549,7 +551,6 @@ async function deletePvz(pvzId){
   toast('ПВЗ удалён', 'ok');
 }
 
-/* ================= АДМИН: ИЗМЕНЕНИЕ QR КОРОБКИ ================= */
 async function changeBoxCode(orderId){
   const o = state.orderIndex[orderId];
   if (!o) throw new Error('Заказ не найден');
@@ -566,7 +567,6 @@ async function changeBoxCode(orderId){
   updates['boxIndex/'+newCode] = { orderId, phone: o.phone, pvzId: o.pvzId };
   await db.ref().update(updates);
   toast('QR коробки обновлён: ' + newCode, 'ok');
-  // Если открыта модалка QR — обновим содержимое
   if (document.getElementById('boxQrModal').classList.contains('show')){
     setTimeout(() => {
       const fresh = state.orderIndex[orderId];
@@ -650,6 +650,8 @@ function viewOrders(){
   if (!list.length) return `<h2>Мои заказы</h2><div class="empty">Заказов пока нет</div>`;
   return `<h2>Мои заказы</h2>` + list.map(o=>{
     const st = statusClass(o.status);
+    const isReturned = o.status === 'returned';
+    const isIssued = o.status === 'issued';
     return `<div class="order">
       <div class="order-head">
         <span class="muted small">${new Date(o.ts).toLocaleString('ru-RU')}</span>
@@ -657,11 +659,14 @@ function viewOrders(){
       </div>
       <div style="font-size:14px;margin-bottom:6px">${o.items.map(i=>`${i.emoji} ${esc(i.name)} ×${i.qty}`).join('<br>')}</div>
       <div class="muted small" style="margin-bottom:10px">ПВЗ: ${esc(o.pvzName||'')} · ${esc(o.pvzAddress||'')}</div>
-      <div style="display:flex;justify-content:space-between;align-items:center">
+      ${isReturned && o.returnReason ? `<div class="reason-box">↩ Возврат: ${esc(o.returnReason)}</div>` : ''}
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px">
         <b>${fmt(o.total)}</b>
-        ${o.status !== 'issued'
+        ${!isIssued && !isReturned
           ? `<button class="btn small" data-showqr="${o.id}">QR и код</button>`
-          : `<span class="muted small">Выдан ${o.issuedAt?new Date(o.issuedAt).toLocaleDateString('ru-RU'):''}</span>`}
+          : `<span class="muted small">${isIssued
+              ? 'Выдан ' + (o.issuedAt ? new Date(o.issuedAt).toLocaleDateString('ru-RU') : '')
+              : 'Возвращён ' + (o.returnedAt ? new Date(o.returnedAt).toLocaleDateString('ru-RU') : '')}</span>`}
       </div>
     </div>`;
   }).join('');
@@ -724,6 +729,7 @@ function viewAdmin(){
 
   const allOrders = Object.entries(state.orderIndex || {}).map(([id,v])=>({id,...v})).sort((a,b)=>b.ts-a.ts);
   const activeOrders = allOrders.filter(o => o.status === 'transit' || o.status === 'pending');
+  const returnedOrders = allOrders.filter(o => o.status === 'returned');
   const doneOrders = allOrders.filter(o => o.status === 'ready' || o.status === 'issued');
 
   return `<h2>Админ-панель</h2>
@@ -763,9 +769,23 @@ function viewAdmin(){
           </div>
         </div>`).join('') : '<div class="muted small">Нет коробок в пути</div>'}
       ${doneOrders.length ? `<div class="muted small" style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border)">
-        ✅ Принято или выдано: ${doneOrders.length} (скрыто из активных)
+        ✅ Принято или выдано: ${doneOrders.length}
       </div>` : ''}
     </div>
+
+    ${returnedOrders.length ? `<div class="card">
+      <h3>Возвраты (${returnedOrders.length})</h3>
+      ${returnedOrders.slice(0, 20).map(o=>`
+        <div class="app-row">
+          <div class="app-head">
+            <b>Код ${esc(o.code6||'')}</b>
+            <span class="badge returned">Возвращён</span>
+          </div>
+          <div class="address">🏙 ${esc(o.pvzCity||'')} · ${esc(o.pvzName||'')}</div>
+          <div class="contact">👤 ${esc(o.phone)} · 💰 ${fmt(o.total)}</div>
+          ${o.returnReason ? `<div class="reason-box">↩ ${esc(o.returnReason)}</div>` : ''}
+        </div>`).join('')}
+    </div>` : ''}
 
     ${others.length ? `<div class="card">
       <h3>История заявок ПВЗ</h3>
@@ -814,10 +834,7 @@ function filterPvzEntries(){
   const q = (state.pvzSearch||'').trim().toLowerCase();
   const entries = Object.entries(state.pvzList);
   if (!q) return entries;
-  return entries.filter(([id, p]) => {
-    const city = getPvzCity(p).toLowerCase();
-    return city.startsWith(q);
-  });
+  return entries.filter(([id, p]) => getPvzCity(p).toLowerCase().startsWith(q));
 }
 
 function renderPvzList(){
@@ -891,8 +908,8 @@ function showOrderQr(orderId){
   document.getElementById('orderCodeBox').textContent = o.code6;
   document.getElementById('orderQrPvz').textContent = o.pvzName || o.pvzAddress || '—';
   const stEl = document.getElementById('orderQrStatus');
-  stEl.innerHTML = o.status === 'issued'
-    ? '<span class="badge issued">Уже выдан</span>'
+  stEl.innerHTML = (o.status === 'issued' || o.status === 'returned')
+    ? `<span class="badge ${statusClass(o.status)}">${statusLabel(o.status)}</span>`
     : `<span class="badge ${statusClass(o.status)}">${statusLabel(o.status)}</span>`;
   openModal('orderQrModal');
 }
