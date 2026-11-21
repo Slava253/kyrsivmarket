@@ -118,6 +118,8 @@ h3{font-size:15px;color:var(--muted);font-weight:600;margin:0 0 10px}
 .nav-badge{background:var(--err);color:#fff;border-radius:999px;padding:1px 7px;font-size:11px;
   margin-left:4px;font-weight:700}
 .ord-meta{font-size:11px;color:var(--muted);margin-top:6px;word-break:break-all;font-family:monospace}
+.stat-pill{display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;
+  background:rgba(139,149,194,.15);color:var(--muted);margin-left:8px}
 </style>
 </head>
 <body>
@@ -547,6 +549,32 @@ async function deletePvz(pvzId){
   toast('ПВЗ удалён', 'ok');
 }
 
+/* ================= АДМИН: ИЗМЕНЕНИЕ QR КОРОБКИ ================= */
+async function changeBoxCode(orderId){
+  const o = state.orderIndex[orderId];
+  if (!o) throw new Error('Заказ не найден');
+  if (o.status !== 'transit' && o.status !== 'pending')
+    throw new Error('Нельзя менять QR принятого или выданного заказа');
+  const oldCode = o.boxCode;
+  if (!oldCode) throw new Error('У заказа нет box-кода');
+
+  const newCode = await generateBoxCode();
+  const updates = {};
+  updates['users/'+o.phone+'/orders/'+orderId+'/boxCode'] = newCode;
+  updates['orderIndex/'+orderId+'/boxCode'] = newCode;
+  updates['boxIndex/'+oldCode] = null;
+  updates['boxIndex/'+newCode] = { orderId, phone: o.phone, pvzId: o.pvzId };
+  await db.ref().update(updates);
+  toast('QR коробки обновлён: ' + newCode, 'ok');
+  // Если открыта модалка QR — обновим содержимое
+  if (document.getElementById('boxQrModal').classList.contains('show')){
+    setTimeout(() => {
+      const fresh = state.orderIndex[orderId];
+      if (fresh) showBoxQr(orderId);
+    }, 100);
+  }
+}
+
 function render(){
   if (!state.phone){ renderLogin(); return; }
   if (!state.user){ document.getElementById('root').innerHTML = '<div class="empty">Загрузка…</div>'; return; }
@@ -694,11 +722,13 @@ function viewAdmin(){
   const others = apps.filter(([,a])=>a.status!=='pending');
   const pvzList = Object.entries(state.pvzList);
 
-  const orders = Object.entries(state.orderIndex || {}).map(([id,v])=>({id,...v})).sort((a,b)=>b.ts-a.ts);
+  const allOrders = Object.entries(state.orderIndex || {}).map(([id,v])=>({id,...v})).sort((a,b)=>b.ts-a.ts);
+  const activeOrders = allOrders.filter(o => o.status === 'transit' || o.status === 'pending');
+  const doneOrders = allOrders.filter(o => o.status === 'ready' || o.status === 'issued');
 
   return `<h2>Админ-панель</h2>
     <div class="card">
-      <h3>Активные заявки (${pending.length})</h3>
+      <h3>Активные заявки ПВЗ (${pending.length})</h3>
       ${pending.length ? pending.map(([id,a])=>`
         <div class="app-row">
           <div class="app-head">
@@ -717,8 +747,8 @@ function viewAdmin(){
     </div>
 
     <div class="card">
-      <h3>Все заказы (${orders.length})</h3>
-      ${orders.length ? orders.slice(0, 30).map(o=>`
+      <h3>Коробки в пути (${activeOrders.length})</h3>
+      ${activeOrders.length ? activeOrders.map(o=>`
         <div class="app-row">
           <div class="app-head">
             <b>Код ${esc(o.code6||'')}</b>
@@ -728,13 +758,17 @@ function viewAdmin(){
           <div class="contact">👤 ${esc(o.phone)} · 💰 ${fmt(o.total)} · 📦 ячейка ${o.cell||'—'}</div>
           <div class="ord-meta">Box: ${esc(o.boxCode||'—')}</div>
           <div class="row-btns" style="margin-top:8px">
-            <button class="btn small" data-boxqr="${esc(o.boxCode||'')}">QR коробки</button>
+            <button class="btn small" data-boxqr="${o.id}">QR коробки</button>
+            <button class="btn small ghost" data-changeboxqr="${o.id}">Изменить QR</button>
           </div>
-        </div>`).join('') : '<div class="muted small">Заказов пока нет</div>'}
+        </div>`).join('') : '<div class="muted small">Нет коробок в пути</div>'}
+      ${doneOrders.length ? `<div class="muted small" style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border)">
+        ✅ Принято или выдано: ${doneOrders.length} (скрыто из активных)
+      </div>` : ''}
     </div>
 
     ${others.length ? `<div class="card">
-      <h3>История заявок</h3>
+      <h3>История заявок ПВЗ</h3>
       ${others.map(([id,a])=>`
         <div class="app-row">
           <div class="app-head">
@@ -863,14 +897,15 @@ function showOrderQr(orderId){
   openModal('orderQrModal');
 }
 
-function showBoxQr(boxCode){
-  if (!boxCode) return;
+function showBoxQr(orderId){
+  const o = state.orderIndex[orderId];
+  if (!o || !o.boxCode){ toast('Нет box-кода','err'); return; }
   new QRious({
     element: document.getElementById('boxQrCanvas'),
-    value: boxCode,
+    value: o.boxCode,
     size: 240, background: '#ffffff', foreground: '#0b1020', level: 'M'
   });
-  document.getElementById('boxQrCode').textContent = boxCode;
+  document.getElementById('boxQrCode').textContent = o.boxCode;
   openModal('boxQrModal');
 }
 
@@ -900,6 +935,13 @@ document.addEventListener('click', async (e) => {
 
   const boxQr = e.target.closest('[data-boxqr]');
   if (boxQr){ showBoxQr(boxQr.dataset.boxqr); return; }
+
+  const changeBoxQr = e.target.closest('[data-changeboxqr]');
+  if (changeBoxQr){
+    try { await changeBoxCode(changeBoxQr.dataset.changeboxqr); }
+    catch(err){ toast(err.message,'err'); }
+    return;
+  }
 
   const approve = e.target.closest('[data-approve]');
   if (approve){ try { await approvePvz(approve.dataset.approve); } catch(err){ toast(err.message,'err'); } return; }
