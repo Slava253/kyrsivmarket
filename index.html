@@ -1,572 +1,698 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>📻 РАЦИЯ • WHOPPER</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Segoe UI', Arial, sans-serif;
-        }
-
-        body {
-            background: #1a1a2e;
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 16px;
-            color: white;
-        }
-
-        .container {
-            max-width: 400px;
-            width: 100%;
-            text-align: center;
-        }
-
-        .logo {
-            font-size: 2.5rem;
-            color: #f5a623;
-            margin-bottom: 5px;
-        }
-
-        .logo span {
-            font-size: 1.2rem;
-            font-weight: bold;
-            display: block;
-            color: white;
-        }
-
-        .sub {
-            color: #888;
-            font-size: 0.8rem;
-            margin-bottom: 20px;
-        }
-
-        /* СТАТУС */
-        .status-bar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: rgba(255,255,255,0.05);
-            border-radius: 20px;
-            padding: 10px 16px;
-            margin-bottom: 20px;
-        }
-
-        .status-dot {
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            display: inline-block;
-            margin-right: 8px;
-        }
-
-        .status-dot.gray { background: #555; }
-        .status-dot.green { background: #4CAF50; animation: pulse-dot 1.5s infinite; }
-        .status-dot.red { background: #ff4444; animation: pulse-dot 0.5s infinite; }
-
-        @keyframes pulse-dot {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.5); }
-        }
-
-        .status-text {
-            font-size: 0.85rem;
-            color: #aaa;
-        }
-
-        .listeners-count {
-            font-size: 0.85rem;
-            color: #888;
-        }
-
-        .listeners-count span {
-            color: #f5a623;
-            font-weight: bold;
-        }
-
-        /* КНОПКА PTT */
-        .ptt-btn {
-            width: 200px;
-            height: 200px;
-            border-radius: 50%;
-            border: 4px solid #444;
-            background: radial-gradient(circle at 30% 30%, #2d2d44, #1a1a2e);
-            color: #888;
-            font-size: 1.2rem;
-            font-weight: bold;
-            cursor: pointer;
-            transition: 0.15s;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            gap: 6px;
-            margin: 10px auto 20px;
-            box-shadow: 0 8px 30px rgba(0,0,0,0.4);
-            touch-action: none;
-            user-select: none;
-            -webkit-user-select: none;
-        }
-
-        .ptt-btn .icon {
-            font-size: 3.5rem;
-        }
-
-        .ptt-btn .label {
-            font-size: 0.8rem;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-        }
-
-        .ptt-btn:active {
-            transform: scale(0.95);
-        }
-
-        .ptt-btn.transmitting {
-            border-color: #ff4444;
-            background: radial-gradient(circle at 30% 30%, #ff4444, #cc0000);
-            color: white;
-            animation: glow-red 0.8s infinite;
-        }
-
-        @keyframes glow-red {
-            0% { box-shadow: 0 0 20px rgba(255,68,68,0.2); }
-            50% { box-shadow: 0 0 60px rgba(255,68,68,0.6); }
-            100% { box-shadow: 0 0 20px rgba(255,68,68,0.2); }
-        }
-
-        .ptt-btn.transmitting .icon {
-            animation: mic-wave 0.5s infinite;
-        }
-
-        @keyframes mic-wave {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.1); }
-        }
-
-        /* ВОЛНЫ ВОКРУГ */
-        .ptt-btn .ring {
-            display: none;
-            position: absolute;
-            top: -10px;
-            left: -10px;
-            right: -10px;
-            bottom: -10px;
-            border-radius: 50%;
-            border: 2px solid rgba(255,68,68,0.15);
-            animation: ring-wave 1.2s infinite;
-        }
-
-        .ptt-btn.transmitting .ring {
-            display: block;
-        }
-
-        .ptt-btn .ring:nth-child(2) { animation-delay: 0.4s; }
-        .ptt-btn .ring:nth-child(3) { animation-delay: 0.8s; }
-
-        @keyframes ring-wave {
-            0% { transform: scale(1); opacity: 1; }
-            100% { transform: scale(1.4); opacity: 0; }
-        }
-
-        .ptt-container {
-            position: relative;
-            display: inline-block;
-        }
-
-        /* СООБЩЕНИЯ */
-        .messages-box {
-            background: rgba(255,255,255,0.03);
-            border-radius: 16px;
-            padding: 10px;
-            max-height: 180px;
-            overflow-y: auto;
-            margin-top: 10px;
-            text-align: left;
-        }
-
-        .messages-box::-webkit-scrollbar {
-            width: 3px;
-        }
-        .messages-box::-webkit-scrollbar-thumb {
-            background: #f5a623;
-            border-radius: 4px;
-        }
-
-        .msg-item {
-            background: rgba(255,255,255,0.04);
-            border-radius: 12px;
-            padding: 8px 12px;
-            margin-bottom: 6px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 0.85rem;
-            animation: slideIn 0.3s ease;
-        }
-
-        @keyframes slideIn {
-            from { opacity: 0; transform: translateY(-8px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .msg-item .user {
-            color: #f5a623;
-            font-weight: bold;
-            font-size: 0.75rem;
-            min-width: 55px;
-        }
-
-        .msg-item .time {
-            color: #555;
-            font-size: 0.65rem;
-        }
-
-        .msg-item .play-btn {
-            background: none;
-            border: none;
-            color: #4CAF50;
-            cursor: pointer;
-            font-size: 0.85rem;
-            padding: 2px 8px;
-        }
-
-        .msg-empty {
-            text-align: center;
-            color: #444;
-            padding: 20px;
-            font-size: 0.85rem;
-        }
-
-        /* ТОСТ */
-        .toast {
-            position: fixed;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: #333;
-            color: white;
-            padding: 10px 20px;
-            border-radius: 40px;
-            z-index: 100;
-            opacity: 0;
-            transition: 0.3s;
-            pointer-events: none;
-            font-weight: 600;
-            font-size: 0.85rem;
-            max-width: 90%;
-            text-align: center;
-        }
-
-        .toast.show {
-            opacity: 1;
-        }
-        .toast.success { background: #4CAF50; }
-        .toast.error { background: #ff4444; }
-
-        .footer {
-            color: #444;
-            font-size: 0.7rem;
-            margin-top: 15px;
-        }
-
-        @media (max-width: 450px) {
-            .ptt-btn {
-                width: 160px;
-                height: 160px;
-            }
-            .ptt-btn .icon {
-                font-size: 2.8rem;
-            }
-        }
-    </style>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Курсив банк</title>
+<style>
+:root{
+  --bg:#0b1020; --card:#141b33; --card2:#1b2444; --text:#e8ecff; --muted:#8b95c2;
+  --accent:#5b7cff; --accent2:#7c5bff; --ok:#25d18a; --err:#ff5b6e; --border:#26305a;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+  background:radial-gradient(1200px 800px at 20% -10%, #1a2350, #0b1020 60%);
+  color:var(--text);min-height:100vh}
+.wrap{max-width:520px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column}
+.header{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid var(--border)}
+.logo-sm{font-weight:700;letter-spacing:.3px}
+.logo-sm span{background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;background-clip:text;color:transparent}
+.header .right{display:flex;gap:8px;align-items:center}
+.phone{font-size:13px;color:var(--muted)}
+.tabs{display:flex;gap:8px;overflow-x:auto;padding:12px;border-bottom:1px solid var(--border);
+  position:sticky;top:0;background:rgba(11,16,32,.85);backdrop-filter:blur(10px);z-index:10}
+.tabs::-webkit-scrollbar{display:none}
+.tab{padding:8px 14px;border-radius:999px;background:var(--card);border:1px solid var(--border);
+  color:var(--muted);white-space:nowrap;cursor:pointer;font-size:14px;font-family:inherit}
+.tab.active{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border-color:transparent}
+.content{padding:16px;flex:1}
+h1,h2,h3{margin:0 0 12px}
+h2{font-size:20px}
+h3{font-size:15px;color:var(--muted);font-weight:600;margin:0 0 10px}
+.muted{color:var(--muted)} .small{font-size:12px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px;margin-bottom:14px}
+.balance-card{background:linear-gradient(135deg,#243066,#3a2a6e);border-radius:20px;padding:20px;margin-bottom:14px;
+  box-shadow:0 10px 30px rgba(91,124,255,.25)}
+.big{font-size:34px;font-weight:700;margin:6px 0 14px}
+.mid{font-size:18px;font-weight:600}
+.row{display:flex;gap:24px}
+.row-between{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.input{width:100%;padding:13px 14px;border-radius:12px;border:1px solid var(--border);
+  background:#0f1530;color:var(--text);font-size:15px;margin-bottom:10px;font-family:inherit;outline:none}
+.input:focus{border-color:var(--accent)}
+.pin{letter-spacing:14px;text-align:center;font-size:24px}
+.btn{width:100%;padding:13px;border-radius:12px;border:none;cursor:pointer;font-size:15px;font-weight:600;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;font-family:inherit}
+.btn:active{transform:scale(.99)}
+.btn.ghost{background:transparent;border:1px solid var(--border);color:var(--muted)}
+.btn.small{width:auto;padding:7px 12px;font-size:13px;border-radius:10px}
+.btn.ok{background:var(--ok)} .btn.err{background:var(--err)}
+.login-wrap{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px}
+.panel{width:100%;max-width:400px;background:var(--card);border:1px solid var(--border);border-radius:20px;padding:26px}
+.brand{text-align:center;margin-bottom:20px}
+.logo{width:56px;height:56px;border-radius:16px;display:inline-flex;align-items:center;justify-content:center;
+  font-size:28px;font-weight:800;background:linear-gradient(135deg,var(--accent),var(--accent2));margin-bottom:10px}
+.err{color:var(--err);font-size:13px;min-height:18px;margin-bottom:8px}
+.quick{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
+.quick button{padding:16px 6px;border-radius:14px;background:var(--card);border:1px solid var(--border);
+  color:var(--text);font-size:13px;cursor:pointer;font-family:inherit}
+.quick button:hover{border-color:var(--accent)}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.chip{padding:6px 12px;border-radius:999px;background:var(--card2);border:1px solid var(--border);
+  color:var(--text);font-size:13px;cursor:pointer;font-family:inherit}
+.bank-card{background:linear-gradient(135deg,#2a2f6b,#4a2f7a);border:none;position:relative}
+.card-num{font-size:18px;letter-spacing:2px;margin:8px 0;font-family:monospace}
+.pending{padding:12px;border-radius:12px;background:rgba(255,193,7,.12);border:1px solid rgba(255,193,7,.4);
+  color:#ffc107;font-size:14px;margin-bottom:12px}
+.frozen{padding:10px;border-radius:12px;background:rgba(255,91,110,.15);border:1px solid var(--err);
+  color:var(--err);font-size:14px;margin-top:12px;text-align:center}
+.empty{padding:30px;text-align:center;color:var(--muted)}
+.hist-row{display:flex;align-items:center;gap:12px;padding:12px;background:var(--card);border-radius:14px;margin-bottom:8px}
+.hist-icon{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  background:var(--card2);font-size:16px;flex-shrink:0}
+.hist-icon.pos{background:rgba(37,209,138,.15);color:var(--ok)}
+.hist-icon.neg{background:rgba(255,91,110,.15);color:var(--err)}
+.hist-main{flex:1;font-size:14px}
+.hist-amt{font-weight:700;font-size:14px}
+.hist-amt.pos{color:var(--ok)} .hist-amt.neg{color:var(--err)}
+.progress{height:8px;border-radius:999px;background:#0f1530;overflow:hidden;margin:8px 0}
+.progress > div{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2))}
+.badge{padding:3px 8px;border-radius:999px;font-size:11px;font-weight:600}
+.badge.ok{background:rgba(37,209,138,.15);color:var(--ok)}
+.badge.err{background:rgba(255,91,110,.15);color:var(--err)}
+.admin-row{padding:12px;border-radius:12px;background:var(--card2);margin-bottom:10px;display:flex;flex-direction:column;gap:8px}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);padding:12px 20px;border-radius:12px;
+  background:var(--card2);border:1px solid var(--border);font-size:14px;z-index:999;animation:up .2s}
+.toast.ok{border-color:var(--ok)} .toast.err{border-color:var(--err)}
+@keyframes up{from{opacity:0;transform:translate(-50%,10px)}to{opacity:1;transform:translate(-50%,0)}}
+</style>
 </head>
 <body>
+<div class="wrap" id="root"></div>
 
-    <div id="toast" class="toast"></div>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script>
+/* ========== FIREBASE ========== */
+const firebaseConfig = {
+  apiKey: "AIzaSyBlZ5ZtyTXgtXxSJAx1jOxwhTrzlHRJmo",
+  authDomain: "bk-cashier.firebaseapp.com",
+  databaseURL: "https://bk-cashier-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "bk-cashier",
+  storageBucket: "bk-cashier.firebasestorage.app",
+  messagingSenderId: "385000840969",
+  appId: "1:385000840969:web:1ec8d09176b6551dc0fdd8"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+db.goOnline();
 
-    <div class="container">
-        <div class="logo">
-            📻
-            <span>WHOPPER РАЦИЯ</span>
-        </div>
-        <div class="sub">Нажмите и удерживайте для передачи</div>
+/* ========== КОНСТАНТЫ И УТИЛИТЫ ========== */
+const ADMIN_PHONE = '+79936050979';
+const WELCOME_BONUS = 1000;
 
-        <!-- СТАТУС -->
-        <div class="status-bar">
-            <div>
-                <span class="status-dot gray" id="statusDot"></span>
-                <span class="status-text" id="statusText">Офлайн</span>
-            </div>
-            <div class="listeners-count">
-                👥 <span id="listenerCount">0</span>
-            </div>
-        </div>
+const fmt = n => new Intl.NumberFormat('ru-RU',{maximumFractionDigits:2}).format(Number(n)||0) + ' ₽';
+const parseAmount = v => Math.round((parseFloat(String(v).replace(',','.'))||0)*100)/100;
+const escapeHtml = s => String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const digitsPhone = v => String(v||'').replace(/\D/g,'');
+const saneId = s => String(s).replace(/[^a-zA-Z0-9]/g,'_');
 
-        <!-- КНОПКА -->
-        <div class="ptt-container">
-            <button class="ptt-btn" id="pttBtn"
-                    onmousedown="startTalk()"
-                    onmouseup="stopTalk()"
-                    onmouseleave="stopTalk()"
-                    ontouchstart="startTalk()"
-                    ontouchend="stopTalk()"
-                    ontouchcancel="stopTalk()">
-                <span class="ring"></span>
-                <span class="ring"></span>
-                <span class="ring"></span>
-                <span class="icon"><i class="fas fa-microphone-alt"></i></span>
-                <span class="label" id="btnLabel">НАЖМИТЕ</span>
-            </button>
-        </div>
+function formatPhone(raw){
+  let d = digitsPhone(raw);
+  if (d.startsWith('9')) d = '7' + d;
+  if (d.length > 11) d = d.slice(0,11);
+  if (!d) return '';
+  let out = '+' + d[0];
+  if (d.length > 1) out += ' ' + d.slice(1,4);
+  if (d.length > 4) out += ' ' + d.slice(4,7);
+  if (d.length > 7) out += '-' + d.slice(7,9);
+  if (d.length > 9) out += '-' + d.slice(9,11);
+  return out;
+}
+function normalizePhone(v){
+  let d = digitsPhone(v);
+  if (d.startsWith('9')) d = '7' + d;
+  return '+' + d;
+}
+function formatCardNum(n){ return String(n).replace(/(\d{4})(?=\d)/g,'$1 '); }
 
-        <!-- СООБЩЕНИЯ -->
-        <div class="messages-box" id="messagesBox">
-            <div class="msg-empty">
-                <i class="fas fa-radio" style="display:block; font-size:1.5rem; margin-bottom:6px; color:#333;"></i>
-                Нет сообщений
-            </div>
-        </div>
+function attachPhoneInput(inp){
+  inp.addEventListener('input', () => {
+    const f = formatPhone(inp.value);
+    if (f !== inp.value){
+      inp.value = f;
+      inp.setSelectionRange(f.length, f.length);
+    }
+  });
+}
 
-        <div class="footer">
-            <i class="fas fa-circle" style="color:#f5a623; font-size:0.5rem;"></i>
-            Канал 1
-        </div>
+function toast(msg, type){
+  const t = document.createElement('div');
+  t.className = 'toast ' + (type||'');
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(()=>t.remove(), 2600);
+}
+
+/* ========== СОСТОЯНИЕ ========== */
+const state = { phone:null, user:null, tab:'home', usersAll:null };
+const loginState = { step:'phone', phone:null, mode:null, pinFirst:null, error:'' };
+let unsubUser = null, unsubAll = null;
+let renderPending = false;
+function renderSoon(){
+  if (renderPending) return;
+  renderPending = true;
+  requestAnimationFrame(()=>{ renderPending = false; render(); });
+}
+
+/* ========== АВТОРИЗАЦИЯ ========== */
+function renderLogin(){
+  const l = loginState;
+  const root = document.getElementById('root');
+  let body = '';
+  if (l.step === 'phone'){
+    body = `
+      <div class="brand"><div class="logo">К</div><h1>Курсив банк</h1></div>
+      <h2>Вход или регистрация</h2>
+      <p class="muted">Введите номер телефона</p>
+      <input id="phoneInput" class="input" inputmode="tel" placeholder="+7 999 123-45-67" autocomplete="off"/>
+      <div class="err" id="err"></div>
+      <button class="btn" id="btnNext">Продолжить</button>
+      <p class="muted small" style="margin-top:16px;text-align:center">Демо-номер админа: +7 993 605-09-79</p>
+    `;
+  } else {
+    const isCreate = l.mode === 'create';
+    const confirm = isCreate && l.pinFirst !== null;
+    const title = isCreate ? (confirm ? 'Повторите PIN-код' : 'Придумайте PIN-код (4 цифры)') : 'Введите PIN-код';
+    body = `
+      <div class="brand"><div class="logo">К</div><h1>Курсив банк</h1></div>
+      <h2>${title}</h2>
+      <p class="muted">${escapeHtml(l.phone||'')}</p>
+      <input id="pinInput" class="input pin" inputmode="numeric" maxlength="4" type="password" placeholder="••••" autocomplete="off"/>
+      <div class="err" id="err">${escapeHtml(l.error||'')}</div>
+      <button class="btn" id="btnPin">${isCreate ? (confirm?'Создать':'Далее') : 'Войти'}</button>
+      <button class="btn ghost" id="btnBack" style="margin-top:8px">Назад</button>
+    `;
+  }
+  root.innerHTML = `<div class="login-wrap"><div class="panel">${body}</div></div>`;
+
+  if (l.step === 'phone'){
+    const inp = document.getElementById('phoneInput');
+    attachPhoneInput(inp);
+    inp.focus();
+    document.getElementById('btnNext').onclick = async () => {
+      const raw = inp.value;
+      if (digitsPhone(raw).length < 11){ document.getElementById('err').textContent = 'Введите номер полностью'; return; }
+      const phone = normalizePhone(raw);
+      document.getElementById('btnNext').textContent = 'Проверяем…';
+      const snap = await db.ref('users/'+phone).once('value');
+      loginState.phone = phone;
+      loginState.error = '';
+      if (snap.exists()){ loginState.mode = 'login'; }
+      else { loginState.mode = 'create'; loginState.pinFirst = null; }
+      loginState.step = 'pin';
+      render();
+    };
+    inp.addEventListener('keydown', e => { if (e.key==='Enter') document.getElementById('btnNext').click(); });
+  } else {
+    const pin = document.getElementById('pinInput');
+    pin.focus();
+    document.getElementById('btnPin').onclick = async () => {
+      const v = pin.value.trim();
+      if (!/^\d{4}$/.test(v)){ loginState.error = 'PIN должен состоять из 4 цифр'; render(); return; }
+      if (loginState.mode === 'login'){
+        const snap = await db.ref('users/'+loginState.phone+'/pin').once('value');
+        if (snap.val() === v){ doLogin(loginState.phone); }
+        else { loginState.error = 'Неверный PIN'; render(); }
+      } else {
+        if (loginState.pinFirst === null){
+          loginState.pinFirst = v; loginState.error = ''; render();
+        } else {
+          if (loginState.pinFirst !== v){
+            loginState.error = 'PIN-коды не совпадают'; loginState.pinFirst = null; render(); return;
+          }
+          await db.ref('users/'+loginState.phone).set({
+            pin: v, balance: WELCOME_BONUS, savings: 0, frozen: false, createdAt: Date.now()
+          });
+          doLogin(loginState.phone);
+        }
+      }
+    };
+    pin.addEventListener('keydown', e => { if (e.key==='Enter') document.getElementById('btnPin').click(); });
+    document.getElementById('btnBack').onclick = () => { loginState.step='phone'; loginState.error=''; render(); };
+  }
+}
+
+function doLogin(phone){
+  localStorage.setItem('cbank_phone', phone);
+  state.phone = phone;
+  state.tab = 'home';
+  subscribeUser(phone);
+}
+
+function subscribeUser(phone){
+  if (unsubUser){ unsubUser(); unsubUser = null; }
+  unsubUser = db.ref('users/'+phone).on('value', snap => {
+    if (!snap.exists()){ logout(); return; }
+    state.user = snap.val();
+    renderSoon();
+  });
+  if (phone === ADMIN_PHONE){
+    if (unsubAll) unsubAll();
+    unsubAll = db.ref('users').on('value', s => {
+      state.usersAll = s.val() || {};
+      if (state.tab === 'admin') renderSoon();
+    });
+  }
+}
+
+function logout(){
+  if (unsubUser){ unsubUser(); unsubUser = null; }
+  if (unsubAll){ unsubAll(); unsubAll = null; }
+  localStorage.removeItem('cbank_phone');
+  state.phone = null; state.user = null; state.tab = 'home'; state.usersAll = null;
+  Object.assign(loginState, { step:'phone', phone:null, mode:null, pinFirst:null, error:'' });
+  render();
+}
+
+/* ========== ОПЕРАЦИИ ========== */
+async function pushHistory(phone, entry){
+  return db.ref('users/'+phone+'/history').push({ ...entry, ts: Date.now() });
+}
+function checkNotFrozen(){
+  if (!state.user) throw new Error('Нет данных');
+  if (state.user.frozen) throw new Error('Аккаунт заморожен');
+}
+
+async function opTransferByPhone(toPhone, amountRaw, note){
+  checkNotFrozen();
+  const a = parseAmount(amountRaw);
+  if (!(a > 0)) throw new Error('Сумма должна быть больше 0');
+  if (toPhone === state.phone) throw new Error('Нельзя перевести самому себе');
+  const toSnap = await db.ref('users/'+toPhone).once('value');
+  if (!toSnap.exists()) throw new Error('Получатель не найден');
+  if (toSnap.val().frozen) throw new Error('Получатель заморожен');
+  const res = await db.ref('users/'+state.phone+'/balance').transaction(b => {
+    const bal = b || 0;
+    if (bal < a) return;
+    return bal - a;
+  });
+  if (!res.committed) throw new Error('Недостаточно средств');
+  await db.ref('users/'+toPhone+'/balance').transaction(b => (b||0) + a);
+  await pushHistory(state.phone, { type:'out', amount:a, to:toPhone, note: note||'' });
+  await pushHistory(toPhone,      { type:'in',  amount:a, from:state.phone, note: note||'' });
+}
+
+async function opSelfTransfer(fromAcc, toAcc, amountRaw){
+  checkNotFrozen();
+  const a = parseAmount(amountRaw);
+  if (!(a > 0)) throw new Error('Сумма должна быть больше 0');
+  if (fromAcc === toAcc) throw new Error('Выберите разные счета');
+  const base = 'users/'+state.phone+'/';
+  const res = await db.ref(base+fromAcc).transaction(b => {
+    const bal = b || 0;
+    if (bal < a) return;
+    return bal - a;
+  });
+  if (!res.committed) throw new Error('Недостаточно средств');
+  await db.ref(base+toAcc).transaction(b => (b||0) + a);
+  await pushHistory(state.phone, { type:'self', amount:a, from:fromAcc, to:toAcc, note:'Между своими счетами' });
+}
+
+async function opTopUpCard(cardNumber, amountRaw){
+  checkNotFrozen();
+  const a = parseAmount(amountRaw);
+  if (!(a > 0)) throw new Error('Сумма должна быть больше 0');
+  if (!state.user.cards || !state.user.cards[cardNumber]) throw new Error('Карта не найдена');
+  const res = await db.ref('users/'+state.phone+'/balance').transaction(b => {
+    const bal = b || 0;
+    if (bal < a) return;
+    return bal - a;
+  });
+  if (!res.committed) throw new Error('Недостаточно средств');
+  await db.ref('users/'+state.phone+'/cards/'+cardNumber+'/balance').transaction(b => (b||0) + a);
+  await pushHistory(state.phone, { type:'card_topup', amount:a, card:cardNumber, note:'Пополнение карты' });
+}
+
+async function opGoalContribute(goalId, amountRaw){
+  checkNotFrozen();
+  const a = parseAmount(amountRaw);
+  if (!(a > 0)) throw new Error('Сумма должна быть больше 0');
+  const res = await db.ref('users/'+state.phone+'/balance').transaction(b => {
+    const bal = b || 0;
+    if (bal < a) return;
+    return bal - a;
+  });
+  if (!res.committed) throw new Error('Недостаточно средств');
+  await db.ref('users/'+state.phone+'/goals/'+goalId+'/saved').transaction(b => (b||0) + a);
+  await pushHistory(state.phone, { type:'goal', amount:a, goalId, note:'Пополнение цели' });
+}
+
+async function requestCard(){
+  checkNotFrozen();
+  if (state.user.cardOrder && state.user.cardOrder.status === 'pending') throw new Error('Заявка уже отправлена');
+  await db.ref('users/'+state.phone+'/cardOrder').set({ status:'pending', ts: Date.now() });
+}
+
+async function adminIssueCard(phone){
+  const inp = document.getElementById('cardNum_'+saneId(phone));
+  const cardNumber = (inp ? inp.value : '').replace(/\D/g,'');
+  if (!cardNumber) { toast('Введите номер карты (цифры)', 'err'); return; }
+  await db.ref('users/'+phone+'/cards/'+cardNumber).set({ balance:0, createdAt: Date.now() });
+  await db.ref('cards/'+cardNumber).set({ phone, createdAt: Date.now() });
+  await db.ref('users/'+phone+'/cardOrder').remove();
+  toast('Карта выдана клиенту ' + phone, 'ok');
+}
+
+async function adminFreeze(phone, freeze){
+  await db.ref('users/'+phone+'/frozen').set(freeze);
+  toast(freeze ? 'Клиент заморожен' : 'Клиент разморожен', 'ok');
+}
+
+/* ========== РЕНДЕР ПРИЛОЖЕНИЯ ========== */
+function render(){
+  if (!state.phone){ renderLogin(); return; }
+  const root = document.getElementById('root');
+  if (!state.user){
+    root.innerHTML = `<div class="empty">Загрузка…</div>`;
+    return;
+  }
+  const isAdmin = state.phone === ADMIN_PHONE;
+  const tabs = [
+    {id:'home', label:'Главная'},
+    {id:'transfers', label:'Переводы'},
+    {id:'cards', label:'Карты'},
+    {id:'history', label:'История'},
+    {id:'more', label:'Ещё'},
+  ];
+  if (isAdmin) tabs.push({id:'admin', label:'Админ'});
+
+  let content = '';
+  switch (state.tab){
+    case 'home': content = viewHome(); break;
+    case 'transfers': content = viewTransfers(); break;
+    case 'cards': content = viewCards(); break;
+    case 'history': content = viewHistory(); break;
+    case 'more': content = viewMore(); break;
+    case 'admin': content = viewAdmin(); break;
+    default: content = viewHome();
+  }
+
+  root.innerHTML = `
+    <div class="header">
+      <div class="logo-sm">Курсив <span>банк</span></div>
+      <div class="right">
+        <span class="phone">${state.phone}</span>
+        <button class="btn ghost small" id="btnLogout">Выйти</button>
+      </div>
+    </div>
+    <div class="tabs">
+      ${tabs.map(t=>`<button class="tab ${state.tab===t.id?'active':''}" data-tab="${t.id}">${t.label}</button>`).join('')}
+    </div>
+    <div class="content">${content}</div>
+  `;
+  bindView();
+}
+
+function viewHome(){
+  const u = state.user;
+  return `
+    <div class="balance-card">
+      <div class="muted">Основной счёт</div>
+      <div class="big">${fmt(u.balance||0)}</div>
+      <div class="row">
+        <div><div class="muted small">Накопительный</div><div class="mid">${fmt(u.savings||0)}</div></div>
+        <div><div class="muted small">Карт</div><div class="mid">${Object.keys(u.cards||{}).length}</div></div>
+        <div><div class="muted small">Целей</div><div class="mid">${Object.keys(u.goals||{}).length}</div></div>
+      </div>
+      ${u.frozen ? '<div class="frozen">Аккаунт заморожен</div>' : ''}
+    </div>
+    <div class="quick">
+      <button data-tab="transfers">Перевод</button>
+      <button data-tab="cards">Карты</button>
+      <button data-tab="history">История</button>
+    </div>
+    <div class="card">
+      <h3>Последние операции</h3>
+      ${(() => {
+        const arr = Object.entries(u.history||{}).map(([id,v])=>({id,...v})).sort((a,b)=>b.ts-a.ts).slice(0,3);
+        if (!arr.length) return '<div class="muted small">Операций пока нет</div>';
+        return arr.map(historyRow).join('');
+      })()}
+    </div>
+  `;
+}
+
+function viewTransfers(){
+  const u = state.user;
+  const cards = Object.keys(u.cards||{});
+  const favs = Object.entries(u.favorites||{});
+  return `
+    <h2>Переводы</h2>
+    <div class="card">
+      <h3>Между своими счетами</h3>
+      <div class="grid2">
+        <select id="selfFrom" class="input">
+          <option value="balance">Основной (${fmt(u.balance||0)})</option>
+          <option value="savings">Накопительный (${fmt(u.savings||0)})</option>
+        </select>
+        <select id="selfTo" class="input">
+          <option value="savings">Накопительный</option>
+          <option value="balance">Основной</option>
+        </select>
+      </div>
+      <input id="selfAmount" class="input" inputmode="decimal" placeholder="Сумма"/>
+      <button class="btn" id="btnSelf">Перевести</button>
     </div>
 
-    <script>
-        // ===== FIREBASE =====
-        const firebaseConfig = {
-            apiKey: "AIzaSyBlZ5ZtyTXgtXxSJAx1jOxwhTrzlHRJmo",
-            authDomain: "bk-cashier.firebaseapp.com",
-            databaseURL: "https://bk-cashier-default-rtdb.asia-southeast1.firebasedatabase.app",
-            projectId: "bk-cashier",
-            storageBucket: "bk-cashier.firebasestorage.app",
-            messagingSenderId: "385000840969",
-            appId: "1:385000840969:web:1ec8d09176b6551dc0fdd8"
-        };
+    <div class="card">
+      <h3>По номеру телефона</h3>
+      <input id="tpPhone" class="input" inputmode="tel" placeholder="+7 999 123-45-67"/>
+      <input id="tpAmount" class="input" inputmode="decimal" placeholder="Сумма"/>
+      <input id="tpNote" class="input" placeholder="Комментарий (необязательно)"/>
+      ${favs.length ? `<div class="chips">${favs.map(([p,n])=>`<button class="chip" data-fav="${p}">${escapeHtml(n)}</button>`).join('')}</div>` : ''}
+      <button class="btn" id="btnTp">Перевести</button>
+    </div>
 
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.database();
-        const storage = firebase.storage();
+    <div class="card">
+      <h3>Пополнить карту</h3>
+      ${cards.length ? `
+        <select id="topCard" class="input">${cards.map(n=>`<option value="${n}">${formatCardNum(n)}</option>`).join('')}</select>
+        <input id="topAmount" class="input" inputmode="decimal" placeholder="Сумма"/>
+        <button class="btn" id="btnTopUp">Пополнить</button>
+      ` : '<div class="muted small">Сначала выпустите карту во вкладке «Карты»</div>'}
+    </div>
+  `;
+}
 
-        // ===== ПЕРЕМЕННЫЕ =====
-        const userId = 'user_' + Date.now().toString(36) + '_' + Math.random().toString(36).substr(2, 4);
-        let isTalking = false;
-        let mediaRecorder = null;
-        let stream = null;
-        let audioChunks = [];
-        let isMicReady = false;
+function viewCards(){
+  const u = state.user;
+  const cards = Object.entries(u.cards||{});
+  return `
+    <h2>Карты</h2>
+    ${cards.length ? cards.map(([num,c])=>`
+      <div class="card bank-card">
+        <div class="muted small">Курсив банк</div>
+        <div class="card-num">${formatCardNum(num)}</div>
+        <div class="mid">${fmt(c.balance||0)}</div>
+      </div>
+    `).join('') : '<div class="empty">У вас пока нет карт</div>'}
+    ${u.cardOrder && u.cardOrder.status === 'pending'
+      ? '<div class="pending">Заявка на выпуск карты отправлена. Ожидайте — админ выдаст номер.</div>'
+      : '<button class="btn" id="btnOrderCard" style="margin-bottom:14px">Выпустить карту</button>'}
+  `;
+}
 
-        // ===== ТОСТ =====
-        function showToast(msg, type = 'info') {
-            const t = document.getElementById('toast');
-            t.textContent = msg;
-            t.className = 'toast ' + type;
-            t.classList.add('show');
-            clearTimeout(t._timeout);
-            t._timeout = setTimeout(() => t.classList.remove('show'), 2000);
-        }
+function historyRow(e){
+  let title='', amt='', cls='';
+  switch(e.type){
+    case 'out':        title='Перевод на '+ (e.to||''); amt='−'+fmt(e.amount); cls='neg'; break;
+    case 'in':         title='Перевод от '+ (e.from||''); amt='+'+fmt(e.amount); cls='pos'; break;
+    case 'self':       title='Между счетами'; amt=fmt(e.amount); cls=''; break;
+    case 'card_topup': title='Пополнение карты '+formatCardNum(e.card||''); amt='−'+fmt(e.amount); cls='neg'; break;
+    case 'goal':       title='Пополнение цели'; amt='−'+fmt(e.amount); cls='neg'; break;
+    case 'terminal':   title='Оплата в терминале'; amt='−'+fmt(e.amount); cls='neg'; break;
+    default:           title=e.type||'Операция'; amt=fmt(e.amount||0);
+  }
+  const date = e.ts ? new Date(e.ts).toLocaleString('ru-RU',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '';
+  return `<div class="hist-row">
+    <div class="hist-icon ${cls}">${cls==='pos'?'↓':cls==='neg'?'↑':'⇄'}</div>
+    <div class="hist-main"><div>${escapeHtml(title)}</div><div class="muted small">${date}${e.note?' • '+escapeHtml(e.note):''}</div></div>
+    <div class="hist-amt ${cls}">${amt}</div>
+  </div>`;
+}
 
-        // ===== СТАТУС =====
-        function setStatus(state, text) {
-            const dot = document.getElementById('statusDot');
-            const statusText = document.getElementById('statusText');
-            dot.className = 'status-dot ' + state;
-            statusText.textContent = text;
-        }
+function viewHistory(){
+  const arr = Object.entries(state.user.history||{}).map(([id,v])=>({id,...v})).sort((a,b)=>b.ts-a.ts);
+  return `<h2>История</h2>` + (arr.length ? arr.map(historyRow).join('') : '<div class="empty">Операций пока нет</div>');
+}
 
-        // ===== ЗАПРОС МИКРОФОНА =====
-        async function getMicrophone() {
-            try {
-                showToast('🎤 Запрос микрофона...', 'info');
-                stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                isMicReady = true;
-                showToast('✅ Микрофон готов', 'success');
-                return true;
-            } catch (err) {
-                console.error(err);
-                showToast('❌ Нет доступа к микрофону', 'error');
-                return false;
-            }
-        }
+function viewMore(){
+  const u = state.user;
+  const favs = Object.entries(u.favorites||{});
+  const goals = Object.entries(u.goals||{});
+  return `
+    <h2>Избранное</h2>
+    <div class="card">
+      <input id="favPhone" class="input" inputmode="tel" placeholder="+7 999 123-45-67"/>
+      <input id="favName" class="input" placeholder="Имя"/>
+      <button class="btn" id="btnAddFav">Добавить в избранное</button>
+      ${favs.length ? `<div class="chips" style="margin-top:12px">${favs.map(([p,n])=>`
+        <span class="chip">${escapeHtml(n)} · ${p} <b data-delfav="${p}" style="margin-left:6px;color:var(--err);cursor:pointer">✕</b></span>
+      `).join('')}</div>` : ''}
+    </div>
 
-        // ===== НАЧАТЬ ГОВОРИТЬ =====
-        window.startTalk = async function() {
-            if (isTalking) return;
+    <h2>Цели</h2>
+    <div class="card">
+      <input id="goalName" class="input" placeholder="Название цели"/>
+      <input id="goalTarget" class="input" inputmode="decimal" placeholder="Нужная сумма"/>
+      <button class="btn" id="btnAddGoal">Создать цель</button>
+    </div>
+    ${goals.map(([id,g])=>{
+      const pct = Math.min(100, Math.round((g.saved||0)/(g.target||1)*100));
+      return `<div class="card">
+        <div class="row-between"><b>${escapeHtml(g.name)}</b>
+          <span class="muted small">${fmt(g.saved||0)} / ${fmt(g.target)}</span></div>
+        <div class="progress"><div style="width:${pct}%"></div></div>
+        <div class="row-between">
+          <input id="goalAmt_${id}" class="input" inputmode="decimal" placeholder="Сумма" style="margin:0;flex:1"/>
+          <button class="btn small" data-goalcontribute="${id}">Отложить</button>
+          <button class="btn ghost small" data-delgoal="${id}">✕</button>
+        </div>
+      </div>`;
+    }).join('')}
+  `;
+}
 
-            if (!isMicReady) {
-                const ok = await getMicrophone();
-                if (!ok) return;
-            }
+function viewAdmin(){
+  const all = state.usersAll || {};
+  const entries = Object.entries(all);
+  const pending = entries.filter(([,u]) => u.cardOrder && u.cardOrder.status === 'pending');
+  return `
+    <h2>Админ панель</h2>
+    <div class="card">
+      <h3>Заявки на карты (${pending.length})</h3>
+      ${pending.length ? pending.map(([p,u])=>`
+        <div class="admin-row">
+          <div><b>${p}</b></div>
+          <div class="muted small">${new Date(u.cardOrder.ts).toLocaleString('ru-RU')}</div>
+          <input class="input" id="cardNum_${saneId(p)}" inputmode="numeric" placeholder="Номер карты (цифры)"/>
+          <button class="btn" data-issue="${p}">Выдать карту</button>
+        </div>
+      `).join('') : '<div class="muted small">Нет заявок</div>'}
+    </div>
 
-            isTalking = true;
+    <div class="card">
+      <h3>Клиенты (${entries.length})</h3>
+      ${entries.map(([p,u])=>`
+        <div class="admin-row">
+          <div class="row-between">
+            <div><b>${p}</b> ${u.frozen
+              ? '<span class="badge err">заморожен</span>'
+              : '<span class="badge ok">активен</span>'}</div>
+            <button class="btn small ${u.frozen?'ok':'err'}" data-freeze="${p}" data-state="${u.frozen?'0':'1'}">
+              ${u.frozen?'Разморозить':'Заморозить'}
+            </button>
+          </div>
+          <div class="muted small">Баланс: ${fmt(u.balance||0)} • Карт: ${Object.keys(u.cards||{}).length}</div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
 
-            // Обновляем кнопку
-            const btn = document.getElementById('pttBtn');
-            btn.className = 'ptt-btn transmitting';
-            document.getElementById('btnLabel').textContent = 'ГОВОРИТЕ';
-            setStatus('red', 'Передача...');
+/* ========== ПРИВЯЗКА СОБЫТИЙ ========== */
+function bindView(){
+  const $ = id => document.getElementById(id);
 
-            // Запускаем запись
-            mediaRecorder = new MediaRecorder(stream);
-            audioChunks = [];
+  if ($('btnLogout')) $('btnLogout').onclick = logout;
 
-            mediaRecorder.ondataavailable = (event) => {
-                if (event.data.size > 0) {
-                    audioChunks.push(event.data);
-                }
-            };
+  if ($('btnSelf')) $('btnSelf').onclick = async () => {
+    try { await opSelfTransfer($('selfFrom').value, $('selfTo').value, $('selfAmount').value); toast('Перевод выполнен','ok'); }
+    catch(err){ toast(err.message,'err'); }
+  };
 
-            mediaRecorder.onstop = () => {
-                // Сохраняем запись
-                const blob = new Blob(audioChunks, { type: 'audio/webm' });
-                saveMessage(blob);
-            };
+  if ($('btnTp')){
+    attachPhoneInput($('tpPhone'));
+    $('btnTp').onclick = async () => {
+      try {
+        if (digitsPhone($('tpPhone').value).length < 11) throw new Error('Неверный номер');
+        await opTransferByPhone(normalizePhone($('tpPhone').value), $('tpAmount').value, $('tpNote').value.trim());
+        toast('Перевод выполнен','ok');
+      } catch(err){ toast(err.message,'err'); }
+    };
+  }
 
-            mediaRecorder.start();
+  if ($('btnTopUp')) $('btnTopUp').onclick = async () => {
+    try { await opTopUpCard($('topCard').value, $('topAmount').value); toast('Карта пополнена','ok'); }
+    catch(err){ toast(err.message,'err'); }
+  };
 
-            if (navigator.vibrate) navigator.vibrate(30);
-            showToast('🔴 Говорите...', 'info');
-        };
+  if ($('btnOrderCard')) $('btnOrderCard').onclick = async () => {
+    try { await requestCard(); toast('Заявка отправлена','ok'); }
+    catch(err){ toast(err.message,'err'); }
+  };
 
-        // ===== ОСТАНОВИТЬ ГОВОРИТЬ =====
-        window.stopTalk = function() {
-            if (!isTalking) return;
+  if ($('btnAddFav')) $('btnAddFav').onclick = async () => {
+    try {
+      if (digitsPhone($('favPhone').value).length < 11) throw new Error('Неверный номер');
+      const p = normalizePhone($('favPhone').value);
+      const name = $('favName').value.trim() || p;
+      await db.ref('users/'+state.phone+'/favorites/'+p).set(name);
+      toast('Добавлено','ok');
+    } catch(err){ toast(err.message,'err'); }
+  };
 
-            isTalking = false;
+  if ($('btnAddGoal')) $('btnAddGoal').onclick = async () => {
+    try {
+      const name = $('goalName').value.trim();
+      const target = parseAmount($('goalTarget').value);
+      if (!name) throw new Error('Введите название');
+      if (!(target > 0)) throw new Error('Неверная сумма');
+      await db.ref('users/'+state.phone+'/goals').push({ name, target, saved:0, createdAt: Date.now() });
+      toast('Цель создана','ok');
+    } catch(err){ toast(err.message,'err'); }
+  };
 
-            if (mediaRecorder && mediaRecorder.state === 'recording') {
-                mediaRecorder.stop();
-            }
+  document.querySelectorAll('[data-goalcontribute]').forEach(btn => {
+    btn.onclick = async () => {
+      const id = btn.dataset.goalcontribute;
+      try { await opGoalContribute(id, document.getElementById('goalAmt_'+id).value); toast('Отложено','ok'); }
+      catch(err){ toast(err.message,'err'); }
+    };
+  });
 
-            // Обновляем кнопку
-            const btn = document.getElementById('pttBtn');
-            btn.className = 'ptt-btn';
-            document.getElementById('btnLabel').textContent = 'НАЖМИТЕ';
-            setStatus('green', 'Онлайн');
+  if ($('favPhone')) attachPhoneInput($('favPhone'));
+}
 
-            if (navigator.vibrate) navigator.vibrate(20);
-            showToast('⏹️ Готово', 'info');
-        };
+/* ========== ГЛОБАЛЬНЫЙ ДЕЛЕГАТ ========== */
+document.addEventListener('click', async (e) => {
+  const tabBtn = e.target.closest('[data-tab]');
+  if (tabBtn){ state.tab = tabBtn.dataset.tab; render(); return; }
 
-        // ===== СОХРАНИТЬ СООБЩЕНИЕ =====
-        async function saveMessage(blob) {
-            const msgId = 'msg_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4);
+  const issueBtn = e.target.closest('[data-issue]');
+  if (issueBtn){ await adminIssueCard(issueBtn.dataset.issue); return; }
 
-            try {
-                // Загружаем в Storage
-                const ref = storage.ref('radio/' + msgId + '.webm');
-                await ref.put(blob, { contentType: 'audio/webm' });
+  const freezeBtn = e.target.closest('[data-freeze]');
+  if (freezeBtn){ await adminFreeze(freezeBtn.dataset.freeze, freezeBtn.dataset.state === '1'); return; }
 
-                // Сохраняем в базу
-                await db.ref('radio/messages/' + msgId).set({
-                    id: msgId,
-                    userId: userId,
-                    userName: 'Пользователь',
-                    timestamp: Date.now(),
-                    duration: 0
-                });
+  const favBtn = e.target.closest('[data-fav]');
+  if (favBtn){ const inp = document.getElementById('tpPhone'); if (inp) inp.value = formatPhone(favBtn.dataset.fav); return; }
 
-                showToast('✅ Сообщение отправлено', 'success');
+  const delFav = e.target.closest('[data-delfav]');
+  if (delFav){ await db.ref('users/'+state.phone+'/favorites/'+delFav.dataset.delfav).remove(); return; }
 
-            } catch (err) {
-                console.error('Ошибка:', err);
-                showToast('❌ Ошибка отправки', 'error');
-            }
-        }
+  const delGoal = e.target.closest('[data-delgoal]');
+  if (delGoal){ await db.ref('users/'+state.phone+'/goals/'+delGoal.dataset.delgoal).remove(); return; }
+});
 
-        // ===== ЗАГРУЗКА СООБЩЕНИЙ =====
-        function loadMessages() {
-            db.ref('radio/messages').orderByChild('timestamp').limitToLast(15).on('value', (sn) => {
-                const items = [];
-                sn.forEach(child => items.push({ id: child.key, ...child.val() }));
-                renderMessages(items.reverse());
-            });
-        }
-
-        function renderMessages(items) {
-            const box = document.getElementById('messagesBox');
-
-            if (items.length === 0) {
-                box.innerHTML = `
-                    <div class="msg-empty">
-                        <i class="fas fa-radio" style="display:block; font-size:1.5rem; margin-bottom:6px; color:#333;"></i>
-                        Нет сообщений
-                    </div>
-                `;
-                return;
-            }
-
-            box.innerHTML = items.map(msg => `
-                <div class="msg-item">
-                    <span class="user"><i class="fas fa-user"></i> ${msg.userName || 'Кто-то'}</span>
-                    <span class="time">${formatTime(msg.timestamp)}</span>
-                    <button class="play-btn" onclick="playMessage('${msg.id}')">
-                        <i class="fas fa-play"></i>
-                    </button>
-                </div>
-            `).join('');
-        }
-
-        function formatTime(ts) {
-            if (!ts) return '--:--';
-            const d = new Date(ts);
-            return d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-        }
-
-        // ===== ВОСПРОИЗВЕДЕНИЕ =====
-        window.playMessage = async function(msgId) {
-            try {
-                const url = await storage.ref('radio/' + msgId + '.webm').getDownloadURL();
-                const audio = new Audio(url);
-                audio.play();
-                showToast('▶️ Воспроизведение', 'info');
-            } catch (err) {
-                showToast('❌ Не удалось воспроизвести', 'error');
-            }
-        };
-
-        // ===== СЧЁТЧИК СЛУШАТЕЛЕЙ =====
-        function updateListeners() {
-            const ref = db.ref('radio/listeners/' + userId);
-            ref.set({ online: true, lastSeen: Date.now() });
-            ref.onDisconnect().remove();
-
-            db.ref('radio/listeners').on('value', (sn) => {
-                document.getElementById('listenerCount').textContent = sn.numChildren();
-            });
-        }
-
-        // ===== ПРИ ЗАКРЫТИИ =====
-        window.addEventListener('beforeunload', () => {
-            if (mediaRecorder && mediaRecorder.state === 'recording') {
-                mediaRecorder.stop();
-            }
-            if (stream) {
-                stream.getTracks().forEach(t => t.stop());
-            }
-            db.ref('radio/listeners/' + userId).remove();
-        });
-
-        // ===== ЗАПУСК =====
-        setStatus('green', 'Онлайн');
-        updateListeners();
-        loadMessages();
-
-        console.log('📻 РАЦИЯ ЗАПУЩЕНА');
-        console.log('🆔', userId);
-        console.log('🔴 Нажмите и удерживайте кнопку для передачи');
-    </script>
+/* ========== СТАРТ ========== */
+(function boot(){
+  const saved = localStorage.getItem('cbank_phone');
+  if (saved){ state.phone = saved; subscribeUser(saved); }
+  else render();
+})();
+</script>
 </body>
 </html>
