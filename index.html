@@ -6,7 +6,8 @@
 <title>Курсив Маркет — Клиент</title>
 <style>
 :root{--bg:#0b1020;--card:#141b33;--card2:#1b2444;--text:#e8ecff;--muted:#8b95c2;
-  --accent:#5b7cff;--accent2:#7c5bff;--ok:#25d18a;--err:#ff5b6e;--warn:#ffc107;--border:#26305a}
+  --accent:#5b7cff;--accent2:#7c5bff;--ok:#25d18a;--err:#ff5b6e;--warn:#ffc107;
+  --blue:#5b9cff;--border:#26305a}
 *{box-sizing:border-box}
 body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
   background:radial-gradient(1200px 800px at 20% -10%, #1a2350, #0b1020 60%);
@@ -30,7 +31,6 @@ h3{font-size:15px;color:var(--muted);font-weight:600;margin:0 0 10px}
   background:#0f1530;color:var(--text);font-size:15px;margin-bottom:10px;font-family:inherit;outline:none}
 .input:focus{border-color:var(--accent)}
 .pin{letter-spacing:14px;text-align:center;font-size:24px}
-.code-input{letter-spacing:8px;text-align:center;font-size:22px;font-family:monospace}
 .btn{width:100%;padding:13px;border-radius:12px;border:none;cursor:pointer;font-size:15px;font-weight:600;
   background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;font-family:inherit;transition:transform .1s}
 .btn:active{transform:scale(.98)}
@@ -67,10 +67,13 @@ h3{font-size:15px;color:var(--muted);font-weight:600;margin:0 0 10px}
 .total-row{display:flex;justify-content:space-between;align-items:center;padding:16px;margin-top:8px;
   background:var(--card2);border-radius:14px;font-size:16px;font-weight:600}
 .order{padding:14px;background:var(--card);border:1px solid var(--border);border-radius:14px;margin-bottom:10px}
-.order-head{display:flex;justify-content:space-between;margin-bottom:8px}
-.badge{padding:3px 10px;border-radius:999px;font-size:11px;font-weight:600}
+.order-head{display:flex;justify-content:space-between;margin-bottom:8px;align-items:center}
+.badge{padding:3px 10px;border-radius:999px;font-size:11px;font-weight:600;white-space:nowrap}
+.badge.transit{background:rgba(91,156,255,.15);color:var(--blue)}
+.badge.ready{background:rgba(37,209,138,.15);color:var(--ok)}
+.badge.issued{background:rgba(139,149,194,.15);color:var(--muted)}
 .badge.pending{background:rgba(255,193,7,.15);color:var(--warn)}
-.badge.issued,.badge.approved{background:rgba(37,209,138,.15);color:var(--ok)}
+.badge.approved{background:rgba(37,209,138,.15);color:var(--ok)}
 .badge.rejected{background:rgba(255,91,110,.15);color:var(--err)}
 .modal{position:fixed;inset:0;background:rgba(0,0,0,.8);backdrop-filter:blur(6px);z-index:1000;
   display:none;align-items:center;justify-content:center;padding:20px}
@@ -91,6 +94,7 @@ h3{font-size:15px;color:var(--muted);font-weight:600;margin:0 0 10px}
 .pvz-option.selected .pvz-radio::after{content:'';width:10px;height:10px;border-radius:50%;background:var(--accent)}
 .pvz-info{flex:1}
 .pvz-name{font-weight:600;font-size:14px}
+.pvz-city{color:#a5b8ff;font-size:12px;margin-top:2px;font-weight:600}
 .pvz-address{color:var(--muted);font-size:12px;margin-top:2px}
 .pvz-schedule{color:var(--muted);font-size:12px;margin-top:2px}
 .qr-box{background:#fff;padding:14px;border-radius:16px;display:flex;justify-content:center;margin:14px 0}
@@ -113,6 +117,7 @@ h3{font-size:15px;color:var(--muted);font-weight:600;margin:0 0 10px}
 @keyframes up{from{opacity:0;transform:translate(-50%,10px)}to{opacity:1;transform:translate(-50%,0)}}
 .nav-badge{background:var(--err);color:#fff;border-radius:999px;padding:1px 7px;font-size:11px;
   margin-left:4px;font-weight:700}
+.ord-meta{font-size:11px;color:var(--muted);margin-top:6px;word-break:break-all;font-family:monospace}
 </style>
 </head>
 <body>
@@ -122,6 +127,7 @@ h3{font-size:15px;color:var(--muted);font-weight:600;margin:0 0 10px}
   <div class="modal-body">
     <div class="modal-head"><b>Выберите пункт выдачи</b>
       <button class="close-btn" data-close="pvzSelectModal">✕</button></div>
+    <input id="pvzSearch" class="input" placeholder="Введите город…" autocomplete="off"/>
     <div id="pvzListBox"></div>
     <button class="btn" id="btnConfirmOrder" style="margin-top:14px" disabled>Подтвердить заказ</button>
   </div>
@@ -135,6 +141,7 @@ h3{font-size:15px;color:var(--muted);font-weight:600;margin:0 0 10px}
     <div class="qr-box"><canvas id="orderQrCanvas"></canvas></div>
     <div class="code-box" id="orderCodeBox">000000</div>
     <div class="muted small" style="text-align:center">ПВЗ: <b id="orderQrPvz">—</b></div>
+    <div class="muted small" style="text-align:center;margin-top:6px" id="orderQrStatus"></div>
   </div>
 </div>
 
@@ -143,9 +150,20 @@ h3{font-size:15px;color:var(--muted);font-weight:600;margin:0 0 10px}
     <div class="modal-head"><b>Стать пунктом выдачи</b>
       <button class="close-btn" data-close="applyPvzModal">✕</button></div>
     <input id="applyName" class="input" placeholder="Название ПВЗ"/>
-    <input id="applyAddress" class="input" placeholder="Адрес: город, улица, дом"/>
+    <input id="applyCity" class="input" placeholder="Город (например Москва)"/>
+    <input id="applyAddress" class="input" placeholder="Адрес: улица, дом"/>
     <input id="applySchedule" class="input" placeholder="График работы (например Пн-Пт 10:00-20:00)"/>
     <button class="btn" id="btnApplyPvz">Отправить заявку</button>
+  </div>
+</div>
+
+<div id="boxQrModal" class="modal">
+  <div class="modal-body">
+    <div class="modal-head"><b>QR коробки</b>
+      <button class="close-btn" data-close="boxQrModal">✕</button></div>
+    <div class="qr-box"><canvas id="boxQrCanvas"></canvas></div>
+    <div class="code-box" id="boxQrCode" style="font-size:20px;letter-spacing:2px">box000000000</div>
+    <p class="muted small" style="text-align:center">Покажите этот QR сотруднику ПВЗ при приёмке</p>
   </div>
 </div>
 
@@ -153,7 +171,6 @@ h3{font-size:15px;color:var(--muted);font-weight:600;margin:0 0 10px}
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
 <script>
-/* ================= FIREBASE ================= */
 const firebaseConfig = {
   apiKey: "AIzaSyBlZ5ZtyTXgtXxSJAx1jOxwhTrzlHRJmo",
   authDomain: "bk-cashier.firebaseapp.com",
@@ -167,7 +184,6 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 db.goOnline();
 
-/* ================= КОНСТАНТЫ ================= */
 const ADMIN_PHONE = '+79936050979';
 const PRODUCTS = [
   { id:'p1',  name:'AirPods Pro 2',       price:19990, emoji:'🎧' },
@@ -185,7 +201,6 @@ const PRODUCTS = [
 ];
 const PRODUCT_MAP = Object.fromEntries(PRODUCTS.map(p => [p.id, p]));
 
-/* ================= УТИЛИТЫ ================= */
 const fmt = n => new Intl.NumberFormat('ru-RU').format(Number(n)||0) + ' ₽';
 const digits = v => String(v||'').replace(/\D/g,'');
 const esc = s => String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -202,11 +217,7 @@ function formatPhone(raw){
   if (d.length > 9) out += '-' + d.slice(9,11);
   return out;
 }
-function normalizePhone(v){
-  let d = digits(v);
-  if (d.startsWith('9')) d = '7' + d;
-  return '+' + d;
-}
+function normalizePhone(v){ let d = digits(v); if (d.startsWith('9')) d='7'+d; return '+'+d; }
 function attachPhoneInput(inp){
   inp.addEventListener('input', () => {
     const f = formatPhone(inp.value);
@@ -223,7 +234,25 @@ function toast(msg, type){
 function openModal(id){ document.getElementById(id).classList.add('show'); }
 function closeModal(id){ document.getElementById(id).classList.remove('show'); }
 
-/* ================= ГЕНЕРАЦИЯ ЛОГИНА/ПАРОЛЯ ================= */
+function statusLabel(s){
+  if (s === 'pending' || s === 'transit') return 'В пути';
+  if (s === 'ready') return 'Готов к выдаче';
+  if (s === 'issued') return 'Выдан';
+  return s || '—';
+}
+function statusClass(s){
+  if (s === 'pending' || s === 'transit') return 'transit';
+  if (s === 'ready') return 'ready';
+  if (s === 'issued') return 'issued';
+  return 'transit';
+}
+function getPvzCity(pvz){
+  if (!pvz) return '';
+  if (pvz.city) return pvz.city;
+  const parts = String(pvz.address||'').split(',');
+  return parts[0] ? parts[0].trim() : '';
+}
+
 function genPassword(len=8){
   const chars = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
   let p = '';
@@ -236,13 +265,29 @@ async function generateUniqueLogin(){
     const snap = await db.ref('pvzLogins/'+l).once('value');
     if (!snap.exists()) return l;
   }
-  throw new Error('Не удалось сгенерировать логин, попробуйте снова');
+  throw new Error('Не удалось сгенерировать логин');
+}
+async function generateCode6(){
+  for (let i = 0; i < 12; i++){
+    const c = String(Math.floor(Math.random()*1000000)).padStart(6,'0');
+    const snap = await db.ref('codeIndex/'+c).once('value');
+    if (!snap.exists()) return c;
+  }
+  throw new Error('Не удалось сгенерировать код');
+}
+async function generateBoxCode(){
+  for (let i = 0; i < 12; i++){
+    const digits9 = String(Math.floor(Math.random()*1000000000)).padStart(9,'0');
+    const code = 'box' + digits9;
+    const snap = await db.ref('boxIndex/'+code).once('value');
+    if (!snap.exists()) return code;
+  }
+  throw new Error('Не удалось сгенерировать код коробки');
 }
 
-/* ================= СОСТОЯНИЕ ================= */
-const state = { phone:null, user:null, tab:'shop', pvzList:{}, applications:{}, selectedPvzId:null };
+const state = { phone:null, user:null, tab:'shop', pvzList:{}, applications:{}, orderIndex:{}, selectedPvzId:null, pvzSearch:'' };
 const loginState = { step:'phone', phone:null, mode:null, pinFirst:null, error:'' };
-let unsubUser = null, unsubPvz = null, unsubApps = null;
+let unsubUser = null, unsubPvz = null, unsubApps = null, unsubOrders = null;
 let renderPending = false;
 function renderSoon(){
   if (renderPending) return;
@@ -250,7 +295,6 @@ function renderSoon(){
   requestAnimationFrame(()=>{ renderPending = false; render(); });
 }
 
-/* ================= АВТОРИЗАЦИЯ ================= */
 function renderLogin(){
   const l = loginState;
   const root = document.getElementById('root');
@@ -325,12 +369,11 @@ function doLogin(phone){
 }
 
 function subscribeUser(phone){
-  // Снимаем ВСЕ прежние подписки через off()
   if (unsubUser){ try { unsubUser(); } catch(e){ console.warn(e); } unsubUser = null; }
   if (unsubPvz){ try { unsubPvz(); } catch(e){ console.warn(e); } unsubPvz = null; }
   if (unsubApps){ try { unsubApps(); } catch(e){ console.warn(e); } unsubApps = null; }
+  if (unsubOrders){ try { unsubOrders(); } catch(e){ console.warn(e); } unsubOrders = null; }
 
-  // users/{phone}
   const userRef = db.ref('users/'+phone);
   const userCb = snap => {
     if (!snap.exists()){ logout(); return; }
@@ -340,16 +383,11 @@ function subscribeUser(phone){
   userRef.on('value', userCb);
   unsubUser = () => userRef.off('value', userCb);
 
-  // pvz (список активных ПВЗ)
   const pvzRef = db.ref('pvz');
-  const pvzCb = snap => {
-    state.pvzList = snap.val() || {};
-    renderSoon();
-  };
+  const pvzCb = snap => { state.pvzList = snap.val() || {}; renderSoon(); };
   pvzRef.on('value', pvzCb);
   unsubPvz = () => pvzRef.off('value', pvzCb);
 
-  // pvzApplications (только для админа)
   if (phone === ADMIN_PHONE){
     const appsRef = db.ref('pvzApplications');
     const appsCb = snap => {
@@ -358,6 +396,14 @@ function subscribeUser(phone){
     };
     appsRef.on('value', appsCb);
     unsubApps = () => appsRef.off('value', appsCb);
+
+    const ordersRef = db.ref('orderIndex');
+    const ordersCb = snap => {
+      state.orderIndex = snap.val() || {};
+      if (state.tab === 'admin') renderSoon();
+    };
+    ordersRef.on('value', ordersCb);
+    unsubOrders = () => ordersRef.off('value', ordersCb);
   }
 }
 
@@ -365,15 +411,16 @@ function logout(){
   if (unsubUser){ try { unsubUser(); } catch(e){ console.warn(e); } unsubUser = null; }
   if (unsubPvz){ try { unsubPvz(); } catch(e){ console.warn(e); } unsubPvz = null; }
   if (unsubApps){ try { unsubApps(); } catch(e){ console.warn(e); } unsubApps = null; }
+  if (unsubOrders){ try { unsubOrders(); } catch(e){ console.warn(e); } unsubOrders = null; }
 
   localStorage.removeItem('mkt_phone');
   state.phone = null; state.user = null; state.tab = 'shop';
-  state.pvzList = {}; state.applications = {}; state.selectedPvzId = null;
+  state.pvzList = {}; state.applications = {}; state.orderIndex = {};
+  state.selectedPvzId = null; state.pvzSearch = '';
   Object.assign(loginState, { step:'phone', phone:null, mode:null, pinFirst:null, error:'' });
   render();
 }
 
-/* ================= КОРЗИНА ================= */
 async function addToCart(pid){
   await db.ref('users/'+state.phone+'/cart/'+pid).transaction(q => (q||0) + 1);
   toast('Добавлено в корзину', 'ok');
@@ -393,19 +440,8 @@ function getCartItems(){
   return items;
 }
 function getCartTotal(items){ return items.reduce((s,i)=>s+i.price*i.qty, 0); }
-function getCartCount(){
-  return Object.values(state.user.cart||{}).reduce((s,q)=>s+(Number(q)||0), 0);
-}
+function getCartCount(){ return Object.values(state.user.cart||{}).reduce((s,q)=>s+(Number(q)||0), 0); }
 
-/* ================= ЗАКАЗ ================= */
-async function generateCode6(){
-  for (let i = 0; i < 12; i++){
-    const c = String(Math.floor(Math.random()*1000000)).padStart(6,'0');
-    const snap = await db.ref('codeIndex/'+c).once('value');
-    if (!snap.exists()) return c;
-  }
-  throw new Error('Не удалось сгенерировать код, попробуйте снова');
-}
 async function createOrder(pvzId){
   const items = getCartItems();
   if (!items.length) throw new Error('Корзина пуста');
@@ -413,39 +449,43 @@ async function createOrder(pvzId){
   if (!pvz) throw new Error('Выберите ПВЗ');
   const total = getCartTotal(items);
   const code6 = await generateCode6();
+  const boxCode = await generateBoxCode();
   const cell = Math.floor(Math.random()*250) + 1;
   const orderRef = db.ref('users/'+state.phone+'/orders').push();
   const orderId = orderRef.key;
   const order = {
     items: items.map(i=>({ id:i.id, name:i.name, price:i.price, qty:i.qty, emoji:i.emoji })),
     total, pvzId, pvzAddress: pvz.address, pvzName: pvz.name,
-    code6, cell, status: 'pending', ts: Date.now()
+    code6, boxCode, cell, status: 'transit', ts: Date.now()
   };
   const updates = {};
   updates['users/'+state.phone+'/orders/'+orderId] = order;
   updates['users/'+state.phone+'/cart'] = null;
-  updates['orderIndex/'+orderId] = { phone: state.phone, code6, status: 'pending', pvzId };
+  updates['orderIndex/'+orderId] = {
+    phone: state.phone, code6, boxCode, status: 'transit',
+    pvzId, pvzName: pvz.name, pvzCity: getPvzCity(pvz),
+    cell, total, ts: Date.now()
+  };
   updates['codeIndex/'+code6] = { orderId, phone: state.phone, pvzId };
+  updates['boxIndex/'+boxCode] = { orderId, phone: state.phone, pvzId };
   await db.ref().update(updates);
-  return { orderId, code6 };
+  return { orderId, code6, boxCode };
 }
 
-/* ================= ЗАЯВКА НА ПВЗ ================= */
-async function submitPvzApplication(name, address, schedule){
-  name = name.trim(); address = address.trim(); schedule = schedule.trim();
-  if (!name || !address || !schedule) throw new Error('Заполните все поля');
+async function submitPvzApplication(name, city, address, schedule){
+  name = name.trim(); city = city.trim(); address = address.trim(); schedule = schedule.trim();
+  if (!name || !city || !address || !schedule) throw new Error('Заполните все поля');
   const cur = state.user.pvzApp;
   if (cur && cur.status === 'pending') throw new Error('Заявка уже на рассмотрении');
   if (cur && cur.status === 'approved') throw new Error('Вы уже владелец ПВЗ');
   const ts = Date.now();
   const appRef = db.ref('pvzApplications').push();
   const updates = {};
-  updates['pvzApplications/'+appRef.key] = { name, address, schedule, phone: state.phone, status:'pending', ts };
-  updates['users/'+state.phone+'/pvzApp'] = { name, address, schedule, status:'pending', ts };
+  updates['pvzApplications/'+appRef.key] = { name, city, address, schedule, phone: state.phone, status:'pending', ts };
+  updates['users/'+state.phone+'/pvzApp'] = { name, city, address, schedule, status:'pending', ts };
   await db.ref().update(updates);
 }
 
-/* ================= АДМИН ================= */
 async function approvePvz(appId){
   const snap = await db.ref('pvzApplications/'+appId).once('value');
   if (!snap.exists()) throw new Error('Заявка не найдена');
@@ -459,8 +499,8 @@ async function approvePvz(appId){
 
   const updates = {};
   updates['pvz/'+pvzId] = {
-    login, password,
-    name: app.name, address: app.address, schedule: app.schedule,
+    login, password, name: app.name, city: app.city || '',
+    address: app.address, schedule: app.schedule,
     ownerPhone: app.phone, createdAt: Date.now()
   };
   updates['pvzLogins/'+login] = { pvzId, password };
@@ -469,7 +509,7 @@ async function approvePvz(appId){
   updates['pvzApplications/'+appId+'/login'] = login;
   updates['pvzApplications/'+appId+'/password'] = password;
   updates['users/'+app.phone+'/pvzApp'] = {
-    name: app.name, address: app.address, schedule: app.schedule,
+    name: app.name, city: app.city || '', address: app.address, schedule: app.schedule,
     status: 'approved', login, password, pvzId, ts: app.ts
   };
   await db.ref().update(updates);
@@ -482,7 +522,7 @@ async function rejectPvz(appId){
   const updates = {};
   updates['pvzApplications/'+appId+'/status'] = 'rejected';
   updates['users/'+app.phone+'/pvzApp'] = {
-    name: app.name, address: app.address, schedule: app.schedule,
+    name: app.name, city: app.city || '', address: app.address, schedule: app.schedule,
     status: 'rejected', ts: app.ts
   };
   await db.ref().update(updates);
@@ -499,8 +539,7 @@ async function deletePvz(pvzId){
     const userSnap = await db.ref('users/'+pvz.ownerPhone+'/pvzApp').once('value');
     if (userSnap.exists()){
       updates['users/'+pvz.ownerPhone+'/pvzApp'] = {
-        ...userSnap.val(),
-        status: 'deleted', login: null, password: null, pvzId: null
+        ...userSnap.val(), status: 'deleted', login: null, password: null, pvzId: null
       };
     }
   }
@@ -508,7 +547,6 @@ async function deletePvz(pvzId){
   toast('ПВЗ удалён', 'ok');
 }
 
-/* ================= РЕНДЕР ================= */
 function render(){
   if (!state.phone){ renderLogin(); return; }
   if (!state.user){ document.getElementById('root').innerHTML = '<div class="empty">Загрузка…</div>'; return; }
@@ -582,21 +620,23 @@ function viewCart(){
 function viewOrders(){
   const list = Object.entries(state.user.orders||{}).map(([id,v])=>({id,...v})).sort((a,b)=>b.ts-a.ts);
   if (!list.length) return `<h2>Мои заказы</h2><div class="empty">Заказов пока нет</div>`;
-  return `<h2>Мои заказы</h2>` + list.map(o=>`
-    <div class="order">
+  return `<h2>Мои заказы</h2>` + list.map(o=>{
+    const st = statusClass(o.status);
+    return `<div class="order">
       <div class="order-head">
         <span class="muted small">${new Date(o.ts).toLocaleString('ru-RU')}</span>
-        <span class="badge ${o.status}">${o.status==='pending'?'Ожидает получения':'Выдан'}</span>
+        <span class="badge ${st}">${statusLabel(o.status)}</span>
       </div>
       <div style="font-size:14px;margin-bottom:6px">${o.items.map(i=>`${i.emoji} ${esc(i.name)} ×${i.qty}`).join('<br>')}</div>
       <div class="muted small" style="margin-bottom:10px">ПВЗ: ${esc(o.pvzName||'')} · ${esc(o.pvzAddress||'')}</div>
       <div style="display:flex;justify-content:space-between;align-items:center">
         <b>${fmt(o.total)}</b>
-        ${o.status==='pending'
+        ${o.status !== 'issued'
           ? `<button class="btn small" data-showqr="${o.id}">QR и код</button>`
           : `<span class="muted small">Выдан ${o.issuedAt?new Date(o.issuedAt).toLocaleDateString('ru-RU'):''}</span>`}
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 
 function viewProfile(isAdmin){
@@ -611,13 +651,14 @@ function viewProfile(isAdmin){
         <span class="muted">Статус</span><span class="badge pending">На рассмотрении</span>
       </div>
       <div class="muted small">Название: ${esc(pa.name)}</div>
+      <div class="muted small">Город: ${esc(pa.city||'—')}</div>
       <div class="muted small">Адрес: ${esc(pa.address)}</div>
       <div class="muted small">График: ${esc(pa.schedule)}</div>
     </div>`;
   } else if (pa && pa.status === 'approved'){
     pvzBlock = `<div class="card">
       <h3>ПВЗ одобрен</h3>
-      <div class="muted small" style="margin-bottom:8px">${esc(pa.name)} · ${esc(pa.address)}</div>
+      <div class="muted small" style="margin-bottom:8px">${esc(pa.name)} · ${esc(pa.city||'')}, ${esc(pa.address)}</div>
       <div class="muted small" style="margin-bottom:8px">🕒 ${esc(pa.schedule||'—')}</div>
       <div class="creds-box">
         <div class="row"><span>Логин:</span><b>${esc(pa.login)}</b></div>
@@ -653,6 +694,8 @@ function viewAdmin(){
   const others = apps.filter(([,a])=>a.status!=='pending');
   const pvzList = Object.entries(state.pvzList);
 
+  const orders = Object.entries(state.orderIndex || {}).map(([id,v])=>({id,...v})).sort((a,b)=>b.ts-a.ts);
+
   return `<h2>Админ-панель</h2>
     <div class="card">
       <h3>Активные заявки (${pending.length})</h3>
@@ -662,6 +705,7 @@ function viewAdmin(){
             <b>${esc(a.name)}</b>
             <span class="muted small">${new Date(a.ts).toLocaleString('ru-RU')}</span>
           </div>
+          <div class="schedule">🏙 ${esc(a.city||'—')}</div>
           <div class="address">📍 ${esc(a.address)}</div>
           <div class="schedule">🕒 ${esc(a.schedule)}</div>
           <div class="contact">📞 ${esc(a.phone)}</div>
@@ -672,17 +716,33 @@ function viewAdmin(){
         </div>`).join('') : '<div class="muted small">Нет активных заявок</div>'}
     </div>
 
+    <div class="card">
+      <h3>Все заказы (${orders.length})</h3>
+      ${orders.length ? orders.slice(0, 30).map(o=>`
+        <div class="app-row">
+          <div class="app-head">
+            <b>Код ${esc(o.code6||'')}</b>
+            <span class="badge ${statusClass(o.status)}">${statusLabel(o.status)}</span>
+          </div>
+          <div class="address">🏙 ${esc(o.pvzCity||'')} · ${esc(o.pvzName||'')}</div>
+          <div class="contact">👤 ${esc(o.phone)} · 💰 ${fmt(o.total)} · 📦 ячейка ${o.cell||'—'}</div>
+          <div class="ord-meta">Box: ${esc(o.boxCode||'—')}</div>
+          <div class="row-btns" style="margin-top:8px">
+            <button class="btn small" data-boxqr="${esc(o.boxCode||'')}">QR коробки</button>
+          </div>
+        </div>`).join('') : '<div class="muted small">Заказов пока нет</div>'}
+    </div>
+
     ${others.length ? `<div class="card">
       <h3>История заявок</h3>
       ${others.map(([id,a])=>`
         <div class="app-row">
           <div class="app-head">
             <b>${esc(a.name)}</b>
-            <span class="badge ${a.status}">${a.status==='approved'?'Одобрена':a.status==='rejected'?'Отклонена':esc(a.status)}</span>
+            <span class="badge ${a.status}">${a.status==='approved'?'Одобрена':'Отклонена'}</span>
           </div>
+          <div class="schedule">🏙 ${esc(a.city||'—')}</div>
           <div class="address">📍 ${esc(a.address)}</div>
-          <div class="schedule">🕒 ${esc(a.schedule||'—')}</div>
-          <div class="contact">📞 ${esc(a.phone)}</div>
           ${a.status==='approved' && a.login ? `
             <div class="creds-box">
               <div class="row"><span>Логин:</span><b>${esc(a.login)}</b></div>
@@ -696,55 +756,79 @@ function viewAdmin(){
       ${pvzList.length ? pvzList.map(([id,p])=>`
         <div class="app-row">
           <div class="app-head"><b>${esc(p.name)}</b></div>
+          <div class="schedule">🏙 ${esc(getPvzCity(p))}</div>
           <div class="address">📍 ${esc(p.address)}</div>
           <div class="schedule">🕒 ${esc(p.schedule||'—')}</div>
-          <div class="contact">📞 ${esc(p.ownerPhone||'')}</div>
-          <div class="contact">🔑 Логин: <b>${esc(p.login||'—')}</b></div>
+          <div class="contact">📞 ${esc(p.ownerPhone||'')} · 🔑 ${esc(p.login||'—')}</div>
           <button class="btn err small" data-delpvz="${id}">Удалить ПВЗ</button>
         </div>`).join('') : '<div class="muted small">ПВЗ пока нет</div>'}
     </div>`;
 }
 
-/* ================= ПРИВЯЗКА КО ВЬЮ ================= */
 function bindView(){
   const $ = id => document.getElementById(id);
   if ($('btnLogout')) $('btnLogout').onclick = logout;
   if ($('btnOpenApply')) $('btnOpenApply').onclick = () => {
-    $('applyName').value = ''; $('applyAddress').value = ''; $('applySchedule').value = '';
+    $('applyName').value = ''; $('applyCity').value = '';
+    $('applyAddress').value = ''; $('applySchedule').value = '';
     openModal('applyPvzModal');
   };
   if ($('btnCheckout')) $('btnCheckout').onclick = openPvzSelectModal;
 }
 
-/* ================= ВЫБОР ПВЗ ================= */
-function openPvzSelectModal(){
-  if (!getCartItems().length){ toast('Корзина пуста','err'); return; }
+function filterPvzEntries(){
+  const q = (state.pvzSearch||'').trim().toLowerCase();
   const entries = Object.entries(state.pvzList);
+  if (!q) return entries;
+  return entries.filter(([id, p]) => {
+    const city = getPvzCity(p).toLowerCase();
+    return city.startsWith(q);
+  });
+}
+
+function renderPvzList(){
+  const entries = filterPvzEntries();
   const box = document.getElementById('pvzListBox');
-  if (!entries.length){
+  if (!Object.keys(state.pvzList).length){
     box.innerHTML = '<div class="empty">Пока нет доступных ПВЗ</div>';
     document.getElementById('btnConfirmOrder').disabled = true;
-  } else {
-    box.innerHTML = entries.map(([id,p])=>`
-      <div class="pvz-option" data-pvzpick="${id}">
-        <div class="pvz-radio"></div>
-        <div class="pvz-info">
-          <div class="pvz-name">${esc(p.name)}</div>
-          <div class="pvz-address">${esc(p.address)}</div>
-          ${p.schedule?`<div class="pvz-schedule">🕒 ${esc(p.schedule)}</div>`:''}
-        </div>
-      </div>`).join('');
-    document.getElementById('btnConfirmOrder').disabled = !state.selectedPvzId;
-    box.querySelectorAll('[data-pvzpick]').forEach(el=>{
-      if (el.dataset.pvzpick === state.selectedPvzId) el.classList.add('selected');
-      el.onclick = () => {
-        state.selectedPvzId = el.dataset.pvzpick;
-        box.querySelectorAll('.pvz-option').forEach(x=>x.classList.remove('selected'));
-        el.classList.add('selected');
-        document.getElementById('btnConfirmOrder').disabled = false;
-      };
-    });
+    return;
   }
+  if (!entries.length){
+    box.innerHTML = '<div class="empty">ПВЗ в этом городе не найдены</div>';
+    document.getElementById('btnConfirmOrder').disabled = !state.selectedPvzId;
+    return;
+  }
+  box.innerHTML = entries.map(([id,p])=>`
+    <div class="pvz-option ${state.selectedPvzId===id?'selected':''}" data-pvzpick="${id}">
+      <div class="pvz-radio"></div>
+      <div class="pvz-info">
+        <div class="pvz-name">${esc(p.name)}</div>
+        ${getPvzCity(p)?`<div class="pvz-city">🏙 ${esc(getPvzCity(p))}</div>`:''}
+        <div class="pvz-address">📍 ${esc(p.address)}</div>
+        ${p.schedule?`<div class="pvz-schedule">🕒 ${esc(p.schedule)}</div>`:''}
+      </div>
+    </div>`).join('');
+  box.querySelectorAll('[data-pvzpick]').forEach(el => {
+    el.onclick = () => {
+      state.selectedPvzId = el.dataset.pvzpick;
+      box.querySelectorAll('.pvz-option').forEach(x=>x.classList.remove('selected'));
+      el.classList.add('selected');
+      document.getElementById('btnConfirmOrder').disabled = false;
+    };
+  });
+  document.getElementById('btnConfirmOrder').disabled = !state.selectedPvzId;
+}
+
+function openPvzSelectModal(){
+  if (!getCartItems().length){ toast('Корзина пуста','err'); return; }
+  state.pvzSearch = '';
+  document.getElementById('pvzSearch').value = '';
+  renderPvzList();
+  document.getElementById('pvzSearch').oninput = (e) => {
+    state.pvzSearch = e.target.value;
+    renderPvzList();
+  };
   document.getElementById('btnConfirmOrder').onclick = async () => {
     if (!state.selectedPvzId) return;
     const btn = document.getElementById('btnConfirmOrder');
@@ -753,7 +837,7 @@ function openPvzSelectModal(){
       const { orderId } = await createOrder(state.selectedPvzId);
       closeModal('pvzSelectModal');
       state.selectedPvzId = null;
-      toast('Заказ создан', 'ok');
+      toast('Заказ создан. Ожидайте доставки в ПВЗ', 'ok');
       state.tab = 'orders'; render();
       setTimeout(() => showOrderQr(orderId), 400);
     } catch(err){ toast(err.message,'err'); }
@@ -762,7 +846,6 @@ function openPvzSelectModal(){
   openModal('pvzSelectModal');
 }
 
-/* ================= QR ЗАКАЗА ================= */
 function showOrderQr(orderId){
   const o = (state.user.orders||{})[orderId];
   if (!o) return;
@@ -773,10 +856,24 @@ function showOrderQr(orderId){
   });
   document.getElementById('orderCodeBox').textContent = o.code6;
   document.getElementById('orderQrPvz').textContent = o.pvzName || o.pvzAddress || '—';
+  const stEl = document.getElementById('orderQrStatus');
+  stEl.innerHTML = o.status === 'issued'
+    ? '<span class="badge issued">Уже выдан</span>'
+    : `<span class="badge ${statusClass(o.status)}">${statusLabel(o.status)}</span>`;
   openModal('orderQrModal');
 }
 
-/* ================= ДЕЛЕГАТ СОБЫТИЙ ================= */
+function showBoxQr(boxCode){
+  if (!boxCode) return;
+  new QRious({
+    element: document.getElementById('boxQrCanvas'),
+    value: boxCode,
+    size: 240, background: '#ffffff', foreground: '#0b1020', level: 'M'
+  });
+  document.getElementById('boxQrCode').textContent = boxCode;
+  openModal('boxQrModal');
+}
+
 document.addEventListener('click', async (e) => {
   const closeBtn = e.target.closest('[data-close]');
   if (closeBtn){ closeModal(closeBtn.dataset.close); return; }
@@ -801,6 +898,9 @@ document.addEventListener('click', async (e) => {
   const showQr = e.target.closest('[data-showqr]');
   if (showQr){ showOrderQr(showQr.dataset.showqr); return; }
 
+  const boxQr = e.target.closest('[data-boxqr]');
+  if (boxQr){ showBoxQr(boxQr.dataset.boxqr); return; }
+
   const approve = e.target.closest('[data-approve]');
   if (approve){ try { await approvePvz(approve.dataset.approve); } catch(err){ toast(err.message,'err'); } return; }
 
@@ -812,17 +912,18 @@ document.addEventListener('click', async (e) => {
 });
 
 document.getElementById('btnApplyPvz').onclick = async () => {
-  const name = document.getElementById('applyName').value;
-  const addr = document.getElementById('applyAddress').value;
-  const sch = document.getElementById('applySchedule').value;
   try {
-    await submitPvzApplication(name, addr, sch);
+    await submitPvzApplication(
+      document.getElementById('applyName').value,
+      document.getElementById('applyCity').value,
+      document.getElementById('applyAddress').value,
+      document.getElementById('applySchedule').value
+    );
     toast('Заявка отправлена', 'ok');
     closeModal('applyPvzModal');
   } catch(err){ toast(err.message,'err'); }
 };
 
-/* ================= СТАРТ ================= */
 (function boot(){
   const saved = localStorage.getItem('mkt_phone');
   if (saved){ state.phone = saved; subscribeUser(saved); }
