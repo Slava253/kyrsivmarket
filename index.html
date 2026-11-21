@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Курсив Маркет</title>
+<title>Курсив Маркет — Клиент</title>
 <style>
 :root{--bg:#0b1020;--card:#141b33;--card2:#1b2444;--text:#e8ecff;--muted:#8b95c2;
   --accent:#5b7cff;--accent2:#7c5bff;--ok:#25d18a;--err:#ff5b6e;--warn:#ffc107;--border:#26305a}
@@ -71,7 +71,8 @@ h3{font-size:15px;color:var(--muted);font-weight:600;margin:0 0 10px}
 .badge{padding:3px 10px;border-radius:999px;font-size:11px;font-weight:600}
 .badge.pending{background:rgba(255,193,7,.15);color:var(--warn)}
 .badge.issued{background:rgba(37,209,138,.15);color:var(--ok)}
-.badge.active{background:rgba(37,209,138,.15);color:var(--ok)}
+.badge.approved{background:rgba(37,209,138,.15);color:var(--ok)}
+.badge.rejected{background:rgba(255,91,110,.15);color:var(--err)}
 .modal{position:fixed;inset:0;background:rgba(0,0,0,.8);backdrop-filter:blur(6px);z-index:1000;
   display:none;align-items:center;justify-content:center;padding:20px}
 .modal.show{display:flex}
@@ -92,21 +93,21 @@ h3{font-size:15px;color:var(--muted);font-weight:600;margin:0 0 10px}
 .pvz-info{flex:1}
 .pvz-name{font-weight:600;font-size:14px}
 .pvz-address{color:var(--muted);font-size:12px;margin-top:2px}
+.pvz-schedule{color:var(--muted);font-size:12px;margin-top:2px}
 .qr-box{background:#fff;padding:14px;border-radius:16px;display:flex;justify-content:center;margin:14px 0}
 .code-box{font-size:34px;font-weight:800;letter-spacing:6px;text-align:center;color:#a5b8ff;
   font-family:monospace;padding:16px;background:#0a1024;border-radius:14px;border:1px dashed var(--border);margin-bottom:14px}
-#qrReader{width:100%;min-height:220px;border-radius:14px;overflow:hidden;background:#0a1024;border:1px solid var(--border)}
-#qrReader video{border-radius:14px}
-.cell-display{text-align:center;padding:24px;background:linear-gradient(135deg,#243066,#3a2a6e);
-  border-radius:20px;margin-bottom:16px}
-.cell-num{font-size:56px;font-weight:800;color:#fff;line-height:1}
-.cell-label{color:rgba(255,255,255,.7);font-size:13px;margin-bottom:6px;text-transform:uppercase;letter-spacing:1px}
 .app-row{padding:14px;background:var(--card2);border-radius:14px;margin-bottom:10px}
-.app-head{display:flex;justify-content:space-between;margin-bottom:8px}
+.app-head{display:flex;justify-content:space-between;margin-bottom:8px;align-items:center}
 .app-row .address{font-size:14px;margin-bottom:4px}
+.app-row .schedule{color:var(--muted);font-size:13px;margin-bottom:4px}
 .app-row .contact{color:var(--muted);font-size:12px;margin-bottom:10px}
 .row-btns{display:flex;gap:8px}
 .row-btns .btn{flex:1;padding:9px;font-size:13px}
+.creds-box{background:#0a1024;border:1px dashed var(--border);border-radius:12px;padding:12px;margin:10px 0;
+  font-family:monospace;font-size:14px}
+.creds-box .row{display:flex;justify-content:space-between;padding:4px 0}
+.creds-box b{color:#a5b8ff}
 .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);padding:12px 20px;border-radius:12px;
   background:var(--card2);border:1px solid var(--border);font-size:14px;z-index:9999;animation:up .2s;max-width:90vw}
 .toast.ok{border-color:var(--ok)} .toast.err{border-color:var(--err)}
@@ -118,7 +119,7 @@ h3{font-size:15px;color:var(--muted);font-weight:600;margin:0 0 10px}
 <body>
 <div class="wrap" id="root"></div>
 
-<!-- Модалка выбора ПВЗ -->
+<!-- Выбор ПВЗ -->
 <div id="pvzSelectModal" class="modal">
   <div class="modal-body">
     <div class="modal-head"><b>Выберите пункт выдачи</b>
@@ -128,49 +129,32 @@ h3{font-size:15px;color:var(--muted);font-weight:600;margin:0 0 10px}
   </div>
 </div>
 
-<!-- Модалка QR заказа (клиент) -->
+<!-- QR заказа -->
 <div id="orderQrModal" class="modal">
   <div class="modal-body">
     <div class="modal-head"><b>Код получения</b>
       <button class="close-btn" data-close="orderQrModal">✕</button></div>
-    <p class="muted small" style="text-align:center;margin:0 0 8px">Покажите QR или назовите код сотруднику ПВЗ</p>
+    <p class="muted small" style="text-align:center;margin:0 0 8px">Покажите QR или назовите 6-значный код сотруднику ПВЗ</p>
     <div class="qr-box"><canvas id="orderQrCanvas"></canvas></div>
     <div class="code-box" id="orderCodeBox">000000</div>
     <div class="muted small" style="text-align:center">ПВЗ: <b id="orderQrPvz">—</b></div>
   </div>
 </div>
 
-<!-- Модалка сканера ПВЗ -->
-<div id="pvzScanModal" class="modal">
-  <div class="modal-body">
-    <div class="modal-head"><b>Сканировать заказ</b>
-      <button class="close-btn" data-close="pvzScanModal" id="btnPvzScanClose">✕</button></div>
-    <div id="qrReader"></div>
-    <p class="muted small" style="text-align:center;margin:14px 0 8px">или введите 6-значный код</p>
-    <input id="pvzCodeInput" class="input code-input" inputmode="numeric" maxlength="6" placeholder="000000"/>
-    <button class="btn" id="btnPvzCodeGo">Найти заказ</button>
-  </div>
-</div>
-
-<!-- Модалка результата сканирования -->
-<div id="pvzResultModal" class="modal">
-  <div class="modal-body" id="pvzResultBody"></div>
-</div>
-
-<!-- Модалка заявки на ПВЗ -->
+<!-- Заявка на ПВЗ -->
 <div id="applyPvzModal" class="modal">
   <div class="modal-body">
     <div class="modal-head"><b>Стать пунктом выдачи</b>
       <button class="close-btn" data-close="applyPvzModal">✕</button></div>
-    <input id="applyName" class="input" placeholder="Название ПВЗ (например «ПВЗ на Тверской»)"/>
+    <input id="applyName" class="input" placeholder="Название ПВЗ"/>
     <input id="applyAddress" class="input" placeholder="Адрес: город, улица, дом"/>
+    <input id="applySchedule" class="input" placeholder="График работы (например Пн-Пт 10:00-20:00)"/>
     <button class="btn" id="btnApplyPvz">Отправить заявку</button>
   </div>
 </div>
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
 <script>
 /* ================= FIREBASE ================= */
@@ -189,20 +173,19 @@ db.goOnline();
 
 /* ================= КОНСТАНТЫ ================= */
 const ADMIN_PHONE = '+79936050979';
-const CELLS_MAX = 250;
 const PRODUCTS = [
-  { id:'p1',  name:'AirPods Pro 2',          price:19990, emoji:'🎧' },
-  { id:'p2',  name:'iPhone 15 128GB',         price:89990, emoji:'📱' },
-  { id:'p3',  name:'Nike Air Zoom',           price:12990, emoji:'👟' },
-  { id:'p4',  name:'Куртка зимняя',           price:8990,  emoji:'🧥' },
-  { id:'p5',  name:'DeLonghi Magnifica',      price:25990, emoji:'☕' },
-  { id:'p6',  name:'Набор кастрюль',          price:6990,  emoji:'🍳' },
-  { id:'p7',  name:'Мастер и Маргарита',      price:890,   emoji:'📚' },
-  { id:'p8',  name:'Рюкзак городской',        price:3990,  emoji:'🎒' },
-  { id:'p9',  name:'Умные часы',              price:15990, emoji:'⌚' },
-  { id:'p10', name:'Плед пушистый',           price:1990,  emoji:'🛏️' },
-  { id:'p11', name:'Пылесос-робот',           price:34990, emoji:'🤖' },
-  { id:'p12', name:'Кружка керамическая',     price:590,   emoji:'🍵' },
+  { id:'p1',  name:'AirPods Pro 2',      price:19990, emoji:'🎧' },
+  { id:'p2',  name:'iPhone 15 128GB',    price:89990, emoji:'📱' },
+  { id:'p3',  name:'Nike Air Zoom',      price:12990, emoji:'👟' },
+  { id:'p4',  name:'Куртка зимняя',      price:8990,  emoji:'🧥' },
+  { id:'p5',  name:'DeLonghi Magnifica', price:25990, emoji:'☕' },
+  { id:'p6',  name:'Набор кастрюль',     price:6990,  emoji:'🍳' },
+  { id:'p7',  name:'Мастер и Маргарита', price:890,   emoji:'📚' },
+  { id:'p8',  name:'Рюкзак городской',   price:3990,  emoji:'🎒' },
+  { id:'p9',  name:'Умные часы',         price:15990, emoji:'⌚' },
+  { id:'p10', name:'Плед пушистый',      price:1990,  emoji:'🛏️' },
+  { id:'p11', name:'Пылесос-робот',      price:34990, emoji:'🤖' },
+  { id:'p12', name:'Кружка керамическая',price:590,   emoji:'🍵' },
 ];
 const PRODUCT_MAP = Object.fromEntries(PRODUCTS.map(p => [p.id, p]));
 
@@ -244,12 +227,24 @@ function toast(msg, type){
 function openModal(id){ document.getElementById(id).classList.add('show'); }
 function closeModal(id){ document.getElementById(id).classList.remove('show'); }
 
+/* ================= ГЕНЕРАЦИЯ ЛОГИНА/ПАРОЛЯ ПВЗ ================= */
+function genPassword(len=8){
+  const chars = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+  let p = '';
+  for (let i = 0; i < len; i++) p += chars[Math.floor(Math.random()*chars.length)];
+  return p;
+}
+async function generateUniqueLogin(){
+  for (let i = 0; i < 20; i++){
+    const l = 'pvz' + Math.random().toString(36).slice(2, 8).padEnd(6, '0').slice(0, 6);
+    const snap = await db.ref('pvzLogins/'+l).once('value');
+    if (!snap.exists()) return l;
+  }
+  throw new Error('Не удалось сгенерировать логин, попробуйте снова');
+}
+
 /* ================= СОСТОЯНИЕ ================= */
-const state = {
-  phone:null, user:null, tab:'shop',
-  pvzList:{}, applications:{},
-  selectedPvzId:null,
-};
+const state = { phone:null, user:null, tab:'shop', pvzList:{}, applications:{}, selectedPvzId:null };
 const loginState = { step:'phone', phone:null, mode:null, pinFirst:null, error:'' };
 let unsubUser=null, unsubPvz=null, unsubApps=null;
 let renderPending=false;
@@ -317,7 +312,7 @@ function renderLogin(){
         if (loginState.pinFirst === null){ loginState.pinFirst = v; loginState.error = ''; render(); }
         else {
           if (loginState.pinFirst !== v){ loginState.error = 'PIN не совпадает'; loginState.pinFirst = null; render(); return; }
-          await db.ref('users/'+loginState.phone).set({ pin: v, role:'client', createdAt: Date.now() });
+          await db.ref('users/'+loginState.phone).set({ pin: v, createdAt: Date.now() });
           doLogin(loginState.phone);
         }
       }
@@ -326,7 +321,6 @@ function renderLogin(){
     document.getElementById('btnBack').onclick = () => { loginState.step='phone'; loginState.error=''; render(); };
   }
 }
-
 function doLogin(phone){
   localStorage.setItem('mkt_phone', phone);
   state.phone = phone; state.tab = 'shop';
@@ -339,9 +333,7 @@ function subscribeUser(phone){
     state.user = snap.val(); renderSoon();
   });
   if (unsubPvz) unsubPvz();
-  unsubPvz = db.ref('pvz').on('value', snap => {
-    state.pvzList = snap.val() || {}; renderSoon();
-  });
+  unsubPvz = db.ref('pvz').on('value', snap => { state.pvzList = snap.val() || {}; renderSoon(); });
   if (phone === ADMIN_PHONE){
     if (unsubApps) unsubApps();
     unsubApps = db.ref('pvzApplications').on('value', snap => {
@@ -361,17 +353,15 @@ function logout(){
 }
 
 /* ================= КОРЗИНА ================= */
-async function addToCart(productId){
-  await db.ref('users/'+state.phone+'/cart/'+productId).transaction(q => (q||0) + 1);
+async function addToCart(pid){
+  await db.ref('users/'+state.phone+'/cart/'+pid).transaction(q => (q||0) + 1);
   toast('Добавлено в корзину', 'ok');
 }
-async function setCartQty(productId, qty){
-  if (qty <= 0) return db.ref('users/'+state.phone+'/cart/'+productId).remove();
-  await db.ref('users/'+state.phone+'/cart/'+productId).set(qty);
+async function setCartQty(pid, qty){
+  if (qty <= 0) return db.ref('users/'+state.phone+'/cart/'+pid).remove();
+  await db.ref('users/'+state.phone+'/cart/'+pid).set(qty);
 }
-async function removeFromCart(productId){
-  await db.ref('users/'+state.phone+'/cart/'+productId).remove();
-}
+async function removeFromCart(pid){ await db.ref('users/'+state.phone+'/cart/'+pid).remove(); }
 function getCartItems(){
   const cart = state.user.cart || {};
   const items = [];
@@ -386,7 +376,7 @@ function getCartCount(){
   return Object.values(state.user.cart||{}).reduce((s,q)=>s+(Number(q)||0), 0);
 }
 
-/* ================= ОФОРМЛЕНИЕ ЗАКАЗА ================= */
+/* ================= ЗАКАЗ ================= */
 async function generateCode6(){
   for (let i = 0; i < 12; i++){
     const c = String(Math.floor(Math.random()*1000000)).padStart(6,'0');
@@ -395,7 +385,6 @@ async function generateCode6(){
   }
   throw new Error('Не удалось сгенерировать код, попробуйте снова');
 }
-
 async function createOrder(pvzId){
   const items = getCartItems();
   if (!items.length) throw new Error('Корзина пуста');
@@ -403,74 +392,36 @@ async function createOrder(pvzId){
   if (!pvz) throw new Error('Выберите ПВЗ');
   const total = getCartTotal(items);
   const code6 = await generateCode6();
-  const cell = Math.floor(Math.random()*CELLS_MAX) + 1;
-  const orderSnap = {
+  const cell = Math.floor(Math.random()*250) + 1;
+  const orderRef = db.ref('users/'+state.phone+'/orders').push();
+  const orderId = orderRef.key;
+  const order = {
     items: items.map(i=>({ id:i.id, name:i.name, price:i.price, qty:i.qty, emoji:i.emoji })),
     total, pvzId, pvzAddress: pvz.address, pvzName: pvz.name,
     code6, cell, status: 'pending', ts: Date.now()
   };
-  const orderRef = db.ref('users/'+state.phone+'/orders').push();
-  const orderId = orderRef.key;
   const updates = {};
-  updates['users/'+state.phone+'/orders/'+orderId] = orderSnap;
+  updates['users/'+state.phone+'/orders/'+orderId] = order;
   updates['users/'+state.phone+'/cart'] = null;
-  updates['orderIndex/'+orderId] = { phone: state.phone, code6, status: 'pending' };
-  updates['codeIndex/'+code6] = { orderId, phone: state.phone };
+  updates['orderIndex/'+orderId] = { phone: state.phone, code6, status: 'pending', pvzId };
+  updates['codeIndex/'+code6] = { orderId, phone: state.phone, pvzId };
   await db.ref().update(updates);
   return { orderId, code6 };
 }
 
-/* ================= ВЫДАЧА ЗАКАЗА (ПВЗ) ================= */
-async function findOrderByQr(qrText){
-  const orderId = String(qrText||'').trim().replace(/^mkt:/i, '').replace(/%3A/gi, ':').trim();
-  if (!orderId) throw new Error('Пустой QR-код');
-  const idx = await db.ref('orderIndex/'+orderId).once('value');
-  if (!idx.exists()) throw new Error('Заказ не найден');
-  const { phone } = idx.val();
-  const oSnap = await db.ref('users/'+phone+'/orders/'+orderId).once('value');
-  if (!oSnap.exists()) throw new Error('Заказ не найден');
-  return { orderId, phone, order: oSnap.val() };
-}
-async function findOrderByCode(code6){
-  code6 = digits(code6);
-  if (code6.length !== 6) throw new Error('Код должен быть из 6 цифр');
-  const idx = await db.ref('codeIndex/'+code6).once('value');
-  if (!idx.exists()) throw new Error('Код не найден или уже использован');
-  const { orderId, phone } = idx.val();
-  const oSnap = await db.ref('users/'+phone+'/orders/'+orderId).once('value');
-  if (!oSnap.exists()) throw new Error('Заказ не найден');
-  return { orderId, phone, order: oSnap.val() };
-}
-async function issueOrder(orderId, phone, code6){
-  const oSnap = await db.ref('users/'+phone+'/orders/'+orderId).once('value');
-  if (!oSnap.exists()) throw new Error('Заказ не найден');
-  const o = oSnap.val();
-  if (o.status === 'issued') throw new Error('Заказ уже выдан');
-  if (state.user.pvzId && o.pvzId !== state.user.pvzId) throw new Error('Заказ другого ПВЗ');
-  const updates = {};
-  updates['users/'+phone+'/orders/'+orderId+'/status'] = 'issued';
-  updates['users/'+phone+'/orders/'+orderId+'/issuedAt'] = Date.now();
-  updates['users/'+phone+'/orders/'+orderId+'/issuedBy'] = state.user.pvzId || null;
-  updates['orderIndex/'+orderId+'/status'] = 'issued';
-  updates['codeIndex/'+code6] = null;
-  await db.ref().update(updates);
-}
-
 /* ================= ЗАЯВКА НА ПВЗ ================= */
-async function submitPvzApplication(name, address){
-  name = name.trim(); address = address.trim();
-  if (!name || !address) throw new Error('Заполните все поля');
-  // проверка существующей заявки
-  const snap = await db.ref('pvzApplications').orderByChild('phone').equalTo(state.phone).once('value');
-  if (snap.exists()){
-    const apps = snap.val();
-    for (const id in apps){
-      if (apps[id].status === 'pending') throw new Error('У вас уже есть заявка на рассмотрении');
-    }
-  }
-  await db.ref('pvzApplications').push({
-    name, address, phone: state.phone, status: 'pending', ts: Date.now()
-  });
+async function submitPvzApplication(name, address, schedule){
+  name = name.trim(); address = address.trim(); schedule = schedule.trim();
+  if (!name || !address || !schedule) throw new Error('Заполните все поля');
+  const cur = state.user.pvzApp;
+  if (cur && cur.status === 'pending') throw new Error('Заявка уже на рассмотрении');
+  if (cur && cur.status === 'approved') throw new Error('Вы уже владелец ПВЗ');
+  const ts = Date.now();
+  const appRef = db.ref('pvzApplications').push();
+  const updates = {};
+  updates['pvzApplications/'+appRef.key] = { name, address, schedule, phone: state.phone, status:'pending', ts };
+  updates['users/'+state.phone+'/pvzApp'] = { name, address, schedule, status:'pending', ts };
+  await db.ref().update(updates);
 }
 
 /* ================= АДМИН ================= */
@@ -479,20 +430,42 @@ async function approvePvz(appId){
   if (!snap.exists()) throw new Error('Заявка не найдена');
   const app = snap.val();
   if (app.status !== 'pending') throw new Error('Заявка уже обработана');
+
+  const login = await generateUniqueLogin();
+  const password = genPassword(8);
   const pvzRef = db.ref('pvz').push();
+  const pvzId = pvzRef.key;
+
   const updates = {};
-  updates['pvz/'+pvzRef.key] = {
-    address: app.address, name: app.name, ownerPhone: app.phone, createdAt: Date.now()
+  updates['pvz/'+pvzId] = {
+    login, password,
+    name: app.name, address: app.address, schedule: app.schedule,
+    ownerPhone: app.phone, createdAt: Date.now()
   };
-  updates['users/'+app.phone+'/role'] = 'pvz';
-  updates['users/'+app.phone+'/pvzId'] = pvzRef.key;
+  updates['pvzLogins/'+login] = { pvzId, password };
   updates['pvzApplications/'+appId+'/status'] = 'approved';
-  updates['pvzApplications/'+appId+'/pvzId'] = pvzRef.key;
+  updates['pvzApplications/'+appId+'/pvzId'] = pvzId;
+  updates['pvzApplications/'+appId+'/login'] = login;
+  updates['pvzApplications/'+appId+'/password'] = password;
+  updates['users/'+app.phone+'/pvzApp'] = {
+    ...(app.ts ? { ts: app.ts } : {}),
+    name: app.name, address: app.address, schedule: app.schedule,
+    status: 'approved', login, password, pvzId
+  };
   await db.ref().update(updates);
-  toast('ПВЗ одобрен', 'ok');
+  toast('ПВЗ одобрен. Логин: ' + login, 'ok');
 }
 async function rejectPvz(appId){
-  await db.ref('pvzApplications/'+appId+'/status').set('rejected');
+  const snap = await db.ref('pvzApplications/'+appId).once('value');
+  if (!snap.exists()) return;
+  const app = snap.val();
+  const updates = {};
+  updates['pvzApplications/'+appId+'/status'] = 'rejected';
+  updates['users/'+app.phone+'/pvzApp'] = {
+    name: app.name, address: app.address, schedule: app.schedule,
+    status: 'rejected', ts: app.ts
+  };
+  await db.ref().update(updates);
   toast('Заявка отклонена', 'ok');
 }
 async function deletePvz(pvzId){
@@ -501,9 +474,15 @@ async function deletePvz(pvzId){
   if (!snap.exists()) return;
   const pvz = snap.val();
   const updates = { ['pvz/'+pvzId]: null };
+  if (pvz.login) updates['pvzLogins/'+pvz.login] = null;
   if (pvz.ownerPhone){
-    updates['users/'+pvz.ownerPhone+'/pvzId'] = null;
-    updates['users/'+pvz.ownerPhone+'/role'] = 'client';
+    const userSnap = await db.ref('users/'+pvz.ownerPhone+'/pvzApp').once('value');
+    if (userSnap.exists()){
+      updates['users/'+pvz.ownerPhone+'/pvzApp'] = {
+        ...userSnap.val(),
+        status: 'deleted', login: null, password: null, pvzId: null
+      };
+    }
   }
   await db.ref().update(updates);
   toast('ПВЗ удалён', 'ok');
@@ -514,29 +493,24 @@ function render(){
   if (!state.phone){ renderLogin(); return; }
   if (!state.user){ document.getElementById('root').innerHTML = '<div class="empty">Загрузка…</div>'; return; }
   const isAdmin = state.phone === ADMIN_PHONE;
-  const isPvz = state.user.role === 'pvz' && state.user.pvzId && state.pvzList[state.user.pvzId];
   const cartCount = getCartCount();
-
   const tabs = [
     { id:'shop', label:'Магазин' },
     { id:'cart', label:'Корзина' + (cartCount ? `<span class="nav-badge">${cartCount}</span>` : '') },
     { id:'orders', label:'Заказы' },
     { id:'profile', label:'Профиль' },
   ];
-  if (isPvz) tabs.push({ id:'pvz', label:'ПВЗ' });
   if (isAdmin) tabs.push({ id:'admin', label:'Админ' });
 
   let content = '';
   switch (state.tab){
-    case 'shop':    content = viewShop(); break;
-    case 'cart':    content = viewCart(); break;
-    case 'orders':  content = viewOrders(); break;
-    case 'profile': content = viewProfile(isPvz, isAdmin); break;
-    case 'pvz':     content = viewPvz(); break;
-    case 'admin':   content = viewAdmin(); break;
+    case 'shop': content = viewShop(); break;
+    case 'cart': content = viewCart(); break;
+    case 'orders': content = viewOrders(); break;
+    case 'profile': content = viewProfile(isAdmin); break;
+    case 'admin': content = viewAdmin(); break;
     default: content = viewShop();
   }
-
   document.getElementById('root').innerHTML = `
     <div class="header">
       <div class="logo-sm">Курсив <span>Маркет</span></div>
@@ -551,25 +525,22 @@ function render(){
 }
 
 function viewShop(){
-  return `<h2>Каталог</h2>
-    <div class="products">
-      ${PRODUCTS.map(p=>`
-        <div class="prod">
-          <div class="prod-img">${p.emoji}</div>
-          <div class="prod-name">${esc(p.name)}</div>
-          <div class="prod-price">${fmt(p.price)}</div>
-          <button class="prod-add" data-addcart="${p.id}">В корзину</button>
-        </div>
-      `).join('')}
-    </div>`;
+  return `<h2>Каталог</h2><div class="products">
+    ${PRODUCTS.map(p=>`
+      <div class="prod">
+        <div class="prod-img">${p.emoji}</div>
+        <div class="prod-name">${esc(p.name)}</div>
+        <div class="prod-price">${fmt(p.price)}</div>
+        <button class="prod-add" data-addcart="${p.id}">В корзину</button>
+      </div>`).join('')}
+  </div>`;
 }
 
 function viewCart(){
   const items = getCartItems();
   if (!items.length) return `<h2>Корзина</h2><div class="empty">Корзина пуста</div>`;
   const total = getCartTotal(items);
-  return `
-    <h2>Корзина</h2>
+  return `<h2>Корзина</h2>
     ${items.map(i=>`
       <div class="cart-item">
         <div class="cart-img">${i.emoji}</div>
@@ -583,16 +554,13 @@ function viewCart(){
           <button class="qty-btn" data-qty="${i.id}" data-delta="1">+</button>
         </div>
         <button class="cart-remove" data-removecart="${i.id}">✕</button>
-      </div>
-    `).join('')}
+      </div>`).join('')}
     <div class="total-row"><span>Итого</span><span>${fmt(total)}</span></div>
-    <button class="btn" id="btnCheckout" style="margin-top:14px">Оформить заказ</button>
-  `;
+    <button class="btn" id="btnCheckout" style="margin-top:14px">Оформить заказ</button>`;
 }
 
 function viewOrders(){
-  const orders = state.user.orders || {};
-  const list = Object.entries(orders).map(([id,v])=>({id,...v})).sort((a,b)=>b.ts-a.ts);
+  const list = Object.entries(state.user.orders||{}).map(([id,v])=>({id,...v})).sort((a,b)=>b.ts-a.ts);
   if (!list.length) return `<h2>Мои заказы</h2><div class="empty">Заказов пока нет</div>`;
   return `<h2>Мои заказы</h2>` + list.map(o=>`
     <div class="order">
@@ -608,64 +576,65 @@ function viewOrders(){
           ? `<button class="btn small" data-showqr="${o.id}">QR и код</button>`
           : `<span class="muted small">Выдан ${o.issuedAt?new Date(o.issuedAt).toLocaleDateString('ru-RU'):''}</span>`}
       </div>
-    </div>
-  `).join('');
+    </div>`).join('');
 }
 
-function viewProfile(isPvz, isAdmin){
-  const pendingApps = Object.values(state.applications).filter(a=>a.status==='pending');
-  const userPendingApps = Object.entries(state.applications).filter(([id,a])=>a.phone===state.phone && a.status==='pending');
-  const canApply = !isPvz && !isAdmin && userPendingApps.length === 0;
-  return `
-    <h2>Профиль</h2>
-    <div class="card">
-      <div class="row-between" style="margin-bottom:12px"><span class="muted">Телефон</span><b>${esc(state.phone)}</b></div>
-      <div class="row-between" style="margin-bottom:12px"><span class="muted">Роль</span>
-        <b>${isPvz ? 'ПВЗ' : (isAdmin ? 'Администратор' : 'Клиент')}</b></div>
-      ${isPvz ? `<div class="row-between"><span class="muted">Ваш ПВЗ</span>
-        <b>${esc(state.pvzList[state.user.pvzId]?.name||'')}</b></div>` : ''}
-    </div>
-    ${canApply ? `
-      <div class="card">
-        <h3>Стать пунктом выдачи</h3>
-        <p class="muted small" style="margin:0 0 10px">Оставьте заявку — после одобрения вы получите панель ПВЗ.</p>
-        <button class="btn" id="btnOpenApply">Подать заявку</button>
-      </div>` : (userPendingApps.length ? `
-      <div class="card">
-        <p class="muted small" style="margin:0">Ваша заявка на ПВЗ находится на рассмотрении.</p>
-      </div>` : '')}
-    <button class="btn ghost" id="btnLogout">Выйти</button>
-  `;
-}
+function viewProfile(isAdmin){
+  const pa = state.user.pvzApp;
+  const canApply = !pa || pa.status === 'rejected' || pa.status === 'deleted';
 
-function viewPvz(){
-  const pvz = state.pvzList[state.user.pvzId];
-  return `
-    <h2>Панель ПВЗ</h2>
+  let pvzBlock = '';
+  if (pa && pa.status === 'pending'){
+    pvzBlock = `<div class="card">
+      <h3>Заявка на ПВЗ</h3>
+      <div class="row" style="display:flex;justify-content:space-between;margin-bottom:6px">
+        <span class="muted">Статус</span><span class="badge pending">На рассмотрении</span>
+      </div>
+      <div class="muted small">Название: ${esc(pa.name)}</div>
+      <div class="muted small">Адрес: ${esc(pa.address)}</div>
+      <div class="muted small">График: ${esc(pa.schedule)}</div>
+    </div>`;
+  } else if (pa && pa.status === 'approved'){
+    pvzBlock = `<div class="card">
+      <h3>ПВЗ одобрен</h3>
+      <div class="muted small" style="margin-bottom:8px">${esc(pa.name)} · ${esc(pa.address)}</div>
+      <div class="creds-box">
+        <div class="row"><span>Логин:</span><b>${esc(pa.login)}</b></div>
+        <div class="row"><span>Пароль:</span><b>${esc(pa.password)}</b></div>
+      </div>
+      <p class="muted small" style="margin:0">Войдите в приложение ПВЗ по этим данным (файл <code>pvz.html</code>).</p>
+    </div>`;
+  } else if (pa && pa.status === 'rejected'){
+    pvzBlock = `<div class="card">
+      <h3>Заявка отклонена</h3>
+      <p class="muted small" style="margin:0 0 10px">Вы можете подать заявку снова.</p>
+    </div>`;
+  }
+
+  return `<h2>Профиль</h2>
     <div class="card">
-      <div class="muted small">Пункт выдачи</div>
-      <div style="font-weight:700;font-size:16px;margin:4px 0">${esc(pvz.name||'')}</div>
-      <div class="muted small">${esc(pvz.address||'')}</div>
+      <div class="row" style="display:flex;justify-content:space-between;margin-bottom:8px"><span class="muted">Телефон</span><b>${esc(state.phone)}</b></div>
+      <div class="row" style="display:flex;justify-content:space-between"><span class="muted">Роль</span>
+        <b>${isAdmin ? 'Администратор' : (pa && pa.status === 'approved' ? 'Клиент + ПВЗ' : 'Клиент')}</b></div>
     </div>
-    <div class="card">
-      <h3>Выдать заказ</h3>
-      <p class="muted small" style="margin:0 0 12px">Отсканируйте QR-код клиента или введите 6-значный код</p>
-      <button class="btn" id="btnPvzScan">📷 Сканировать QR</button>
-      <div class="muted small" style="text-align:center;margin:14px 0 8px">или введите код вручную</div>
-      <input id="pvzInlineCode" class="input code-input" inputmode="numeric" maxlength="6" placeholder="000000"/>
-      <button class="btn ghost" id="btnPvzInlineGo">Найти заказ</button>
-    </div>
-  `;
+    ${pvzBlock}
+    ${canApply && !isAdmin ? `<div class="card">
+      <h3>Стать пунктом выдачи</h3>
+      <p class="muted small" style="margin:0 0 10px">Оставьте заявку — после одобрения вы получите логин и пароль для панели ПВЗ.</p>
+      <button class="btn" id="btnOpenApply">Подать заявку</button>
+    </div>` : ''}
+    <button class="btn ghost" id="btnLogout">Выйти</button>`;
 }
 
 function viewAdmin(){
   const apps = Object.entries(state.applications).sort(([,a],[,b])=>b.ts-a.ts);
   const pending = apps.filter(([,a])=>a.status==='pending');
+  const others = apps.filter(([,a])=>a.status!=='pending');
   const pvzList = Object.entries(state.pvzList);
-  return `
-    <h2>Админ-панель</h2>
+
+  return `<h2>Админ-панель</h2>
     <div class="card">
-      <h3>Заявки на ПВЗ (${pending.length})</h3>
+      <h3>Активные заявки (${pending.length})</h3>
       ${pending.length ? pending.map(([id,a])=>`
         <div class="app-row">
           <div class="app-head">
@@ -673,67 +642,77 @@ function viewAdmin(){
             <span class="muted small">${new Date(a.ts).toLocaleString('ru-RU')}</span>
           </div>
           <div class="address">📍 ${esc(a.address)}</div>
+          <div class="schedule">🕒 ${esc(a.schedule)}</div>
           <div class="contact">📞 ${esc(a.phone)}</div>
           <div class="row-btns">
             <button class="btn ok" data-approve="${id}">Одобрить</button>
             <button class="btn err" data-reject="${id}">Отклонить</button>
           </div>
-        </div>
-      `).join('') : '<div class="muted small">Нет активных заявок</div>'}
+        </div>`).join('') : '<div class="muted small">Нет активных заявок</div>'}
     </div>
+
+    ${others.length ? `<div class="card">
+      <h3>История заявок</h3>
+      ${others.map(([id,a])=>`
+        <div class="app-row">
+          <div class="app-head">
+            <b>${esc(a.name)}</b>
+            <span class="badge ${a.status}">${a.status==='approved'?'Одобрена':'Отклонена'}</span>
+          </div>
+          <div class="address">📍 ${esc(a.address)}</div>
+          <div class="schedule">🕒 ${esc(a.schedule||'—')}</div>
+          <div class="contact">📞 ${esc(a.phone)}</div>
+          ${a.status==='approved' && a.login ? `
+            <div class="creds-box">
+              <div class="row"><span>Логин:</span><b>${esc(a.login)}</b></div>
+              <div class="row"><span>Пароль:</span><b>${esc(a.password||'')}</b></div>
+            </div>` : ''}
+        </div>`).join('')}
+    </div>` : ''}
+
     <div class="card">
       <h3>Активные ПВЗ (${pvzList.length})</h3>
       ${pvzList.length ? pvzList.map(([id,p])=>`
         <div class="app-row">
           <div class="app-head"><b>${esc(p.name)}</b></div>
           <div class="address">📍 ${esc(p.address)}</div>
+          <div class="schedule">🕒 ${esc(p.schedule||'—')}</div>
           <div class="contact">📞 ${esc(p.ownerPhone||'')}</div>
-          <button class="btn err small" data-delpvz="${id}">Удалить</button>
-        </div>
-      `).join('') : '<div class="muted small">ПВЗ пока нет</div>'}
-    </div>
-  `;
+          <div class="contact">🔑 Логин: <b>${esc(p.login||'—')}</b></div>
+          <button class="btn err small" data-delpvz="${id}">Удалить ПВЗ</button>
+        </div>`).join('') : '<div class="muted small">ПВЗ пока нет</div>'}
+    </div>`;
 }
 
 /* ================= ПРИВЯЗКА ================= */
 function bindView(){
   const $ = id => document.getElementById(id);
-
   if ($('btnLogout')) $('btnLogout').onclick = logout;
   if ($('btnOpenApply')) $('btnOpenApply').onclick = () => {
-    $('applyName').value = ''; $('applyAddress').value = '';
+    $('applyName').value = ''; $('applyAddress').value = ''; $('applySchedule').value = '';
     openModal('applyPvzModal');
   };
-
   if ($('btnCheckout')) $('btnCheckout').onclick = openPvzSelectModal;
-  if ($('btnPvzScan')) $('btnPvzScan').onclick = openPvzScanModal;
-  if ($('btnPvzInlineGo')){
-    $('pvzInlineCode').addEventListener('input', e => { e.target.value = digits(e.target.value); });
-    $('btnPvzInlineGo').onclick = async () => {
-      try { await processPvzLookup({ code: $('pvzInlineCode').value }); }
-      catch(err){ toast(err.message,'err'); }
-    };
-  }
 }
 
-/* ================= ВЫБОР ПВЗ ПРИ ЗАКАЗЕ ================= */
+/* ================= ВЫБОР ПВЗ ================= */
 function openPvzSelectModal(){
   if (!getCartItems().length){ toast('Корзина пуста','err'); return; }
-  const pvzEntries = Object.entries(state.pvzList);
+  const entries = Object.entries(state.pvzList);
   const box = document.getElementById('pvzListBox');
-  if (!pvzEntries.length){
-    box.innerHTML = '<div class="empty">Пока нет доступных ПВЗ. Попробуйте позже.</div>';
+  if (!entries.length){
+    box.innerHTML = '<div class="empty">Пока нет доступных ПВЗ</div>';
     document.getElementById('btnConfirmOrder').disabled = true;
   } else {
-    box.innerHTML = pvzEntries.map(([id,p])=>`
+    box.innerHTML = entries.map(([id,p])=>`
       <div class="pvz-option" data-pvzpick="${id}">
         <div class="pvz-radio"></div>
         <div class="pvz-info">
           <div class="pvz-name">${esc(p.name)}</div>
           <div class="pvz-address">${esc(p.address)}</div>
+          ${p.schedule?`<div class="pvz-schedule">🕒 ${esc(p.schedule)}</div>`:''}
         </div>
-      </div>
-    `).join('');
+      </div>`).join('');
     document.getElementById('btnConfirmOrder').disabled = !state.selectedPvzId;
     box.querySelectorAll('[data-pvzpick]').forEach(el=>{
       if (el.dataset.pvzpick === state.selectedPvzId) el.classList.add('selected');
@@ -750,7 +729,7 @@ function openPvzSelectModal(){
     const btn = document.getElementById('btnConfirmOrder');
     btn.disabled = true; btn.textContent = 'Оформляем…';
     try {
-      const { orderId, code6 } = await createOrder(state.selectedPvzId);
+      const { orderId } = await createOrder(state.selectedPvzId);
       closeModal('pvzSelectModal');
       state.selectedPvzId = null;
       toast('Заказ создан', 'ok');
@@ -762,7 +741,7 @@ function openPvzSelectModal(){
   openModal('pvzSelectModal');
 }
 
-/* ================= ПОКАЗ QR ЗАКАЗА КЛИЕНТУ ================= */
+/* ================= QR ЗАКАЗА ================= */
 function showOrderQr(orderId){
   const o = (state.user.orders||{})[orderId];
   if (!o) return;
@@ -776,101 +755,10 @@ function showOrderQr(orderId){
   openModal('orderQrModal');
 }
 
-/* ================= ПВЗ: СКАНИРОВАНИЕ ================= */
-let pvzScanner = null;
-let pvzScanBusy = false;
-let pendingPvzOrder = null; // { orderId, phone, order }
-
-async function openPvzScanModal(){
-  document.getElementById('pvzCodeInput').value = '';
-  openModal('pvzScanModal');
-  if (!pvzScanner){
-    try { pvzScanner = new Html5Qrcode('qrReader'); }
-    catch(e){ console.warn('scanner init', e); return; }
-  }
-  pvzScanBusy = false;
-  try {
-    await pvzScanner.start(
-      { facingMode: 'environment' },
-      { fps: 10, qrbox: { width: 240, height: 240 } },
-      (text) => onPvzQr(text),
-      () => {}
-    );
-  } catch(err){
-    console.warn('camera err', err);
-    toast('Камера недоступна — введите код вручную', 'err');
-  }
-}
-async function stopPvzScanner(){
-  if (pvzScanner){ try { await pvzScanner.stop(); } catch(e){} }
-}
-async function onPvzQr(text){
-  if (pvzScanBusy) return;
-  pvzScanBusy = true;
-  await stopPvzScanner();
-  closeModal('pvzScanModal');
-  try { await processPvzLookup({ qr: text }); }
-  catch(err){ toast(err.message,'err'); }
-  pvzScanBusy = false;
-}
-async function processPvzLookup(input){
-  let result;
-  if (input.qr) result = await findOrderByQr(input.qr);
-  else if (input.code) result = await findOrderByCode(input.code);
-  else throw new Error('Нет данных');
-  if (result.order.status === 'issued') throw new Error('Заказ уже выдан');
-  if (state.user.pvzId && result.order.pvzId !== state.user.pvzId)
-    throw new Error('Заказ другого ПВЗ');
-  pendingPvzOrder = result;
-  renderPvzResult(result);
-  openModal('pvzResultModal');
-}
-function renderPvzResult({ orderId, phone, order }){
-  document.getElementById('pvzResultBody').innerHTML = `
-    <div class="modal-head"><b>Заказ найден</b>
-      <button class="close-btn" id="btnPvzResClose">✕</button></div>
-    <div class="cell-display">
-      <div class="cell-label">Ячейка</div>
-      <div class="cell-num">${order.cell}</div>
-    </div>
-    <div class="card" style="margin-bottom:12px">
-      <div class="muted small" style="margin-bottom:6px">Состав заказа</div>
-      ${order.items.map(i=>`<div style="font-size:14px;padding:2px 0">${i.emoji} ${esc(i.name)} ×${i.qty}</div>`).join('')}
-      <div style="display:flex;justify-content:space-between;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">
-        <span class="muted">Итого</span><b>${fmt(order.total)}</b>
-      </div>
-    </div>
-    <div class="card" style="margin-bottom:12px">
-      <div class="row-between" style="margin-bottom:6px"><span class="muted">Клиент</span><b>${esc(phone)}</b></div>
-      <div class="row-between"><span class="muted">Код</span><b>${order.code6}</b></div>
-    </div>
-    <button class="btn ok" id="btnPvzIssue">Выдать заказ</button>
-  `;
-  document.getElementById('btnPvzResClose').onclick = () => {
-    pendingPvzOrder = null; closeModal('pvzResultModal');
-  };
-  document.getElementById('btnPvzIssue').onclick = async () => {
-    if (!pendingPvzOrder) return;
-    const btn = document.getElementById('btnPvzIssue');
-    btn.disabled = true; btn.textContent = 'Выдаём…';
-    try {
-      await issueOrder(pendingPvzOrder.orderId, pendingPvzOrder.phone, pendingPvzOrder.order.code6);
-      toast('Заказ выдан', 'ok');
-      pendingPvzOrder = null;
-      closeModal('pvzResultModal');
-    } catch(err){ toast(err.message,'err'); }
-    btn.disabled = false; btn.textContent = 'Выдать заказ';
-  };
-}
-
-/* ================= ГЛОБАЛЬНЫЕ ОБРАБОТЧИКИ ================= */
+/* ================= ДЕЛЕГАТ ================= */
 document.addEventListener('click', async (e) => {
   const closeBtn = e.target.closest('[data-close]');
-  if (closeBtn){
-    closeModal(closeBtn.dataset.close);
-    if (closeBtn.dataset.close === 'pvzScanModal') await stopPvzScanner();
-    return;
-  }
+  if (closeBtn){ closeModal(closeBtn.dataset.close); return; }
 
   const tabBtn = e.target.closest('[data-tab]');
   if (tabBtn){ state.tab = tabBtn.dataset.tab; render(); return; }
@@ -886,55 +774,28 @@ document.addEventListener('click', async (e) => {
     await setCartQty(pid, cur + delta);
     return;
   }
-
-  const rmCart = e.target.closest('[data-removecart]');
-  if (rmCart){ await removeFromCart(rmCart.dataset.removecart); return; }
+  const rm = e.target.closest('[data-removecart]');
+  if (rm){ await removeFromCart(rm.dataset.removecart); return; }
 
   const showQr = e.target.closest('[data-showqr]');
   if (showQr){ showOrderQr(showQr.dataset.showqr); return; }
 
   const approve = e.target.closest('[data-approve]');
-  if (approve){
-    try { await approvePvz(approve.dataset.approve); }
-    catch(err){ toast(err.message,'err'); }
-    return;
-  }
-  const reject = e.target.closest('[data-reject]');
-  if (reject){
-    try { await rejectPvz(reject.dataset.reject); }
-    catch(err){ toast(err.message,'err'); }
-    return;
-  }
-  const delPvz = e.target.closest('[data-delpvz]');
-  if (delPvz){
-    try { await deletePvz(delPvz.dataset.delpvz); }
-    catch(err){ toast(err.message,'err'); }
-    return;
-  }
-});
+  if (approve){ try { await approvePvz(approve.dataset.approve); } catch(err){ toast(err.message,'err'); } return; }
 
-document.getElementById('btnPvzScanClose').onclick = async () => {
-  closeModal('pvzScanModal');
-  await stopPvzScanner();
-};
-document.getElementById('btnPvzCodeGo').onclick = async () => {
-  const v = document.getElementById('pvzCodeInput').value;
-  try {
-    closeModal('pvzScanModal');
-    await stopPvzScanner();
-    await processPvzLookup({ code: v });
-  } catch(err){ toast(err.message,'err'); }
-};
-document.getElementById('pvzCodeInput').addEventListener('input', e => { e.target.value = digits(e.target.value); });
-document.getElementById('pvzCodeInput').addEventListener('keydown', e => {
-  if (e.key === 'Enter') document.getElementById('btnPvzCodeGo').click();
+  const reject = e.target.closest('[data-reject]');
+  if (reject){ try { await rejectPvz(reject.dataset.reject); } catch(err){ toast(err.message,'err'); } return; }
+
+  const delPvz = e.target.closest('[data-delpvz]');
+  if (delPvz){ try { await deletePvz(delPvz.dataset.delpvz); } catch(err){ toast(err.message,'err'); } return; }
 });
 
 document.getElementById('btnApplyPvz').onclick = async () => {
   const name = document.getElementById('applyName').value;
   const addr = document.getElementById('applyAddress').value;
+  const sch = document.getElementById('applySchedule').value;
   try {
-    await submitPvzApplication(name, addr);
+    await submitPvzApplication(name, addr, sch);
     toast('Заявка отправлена', 'ok');
     closeModal('applyPvzModal');
   } catch(err){ toast(err.message,'err'); }
