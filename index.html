@@ -128,7 +128,6 @@ textarea.input{resize:vertical;min-height:70px;font-family:inherit}
   margin-left:4px;font-weight:700}
 .ord-meta{font-size:11px;color:var(--muted);margin-top:6px;word-break:break-all;font-family:monospace}
 
-/* === отзывы === */
 .stars{display:inline-flex;gap:2px;font-size:16px;letter-spacing:1px}
 .stars .off{color:#2d3766}
 .review{background:var(--card2);border-radius:12px;padding:12px;margin-bottom:10px}
@@ -153,7 +152,6 @@ textarea.input{resize:vertical;min-height:70px;font-family:inherit}
   display:flex;align-items:center;justify-content:center;font-size:24px;color:var(--muted);cursor:pointer}
 .photo-upload input[type=file]{display:none}
 
-/* === чат поддержки === */
 .chat-wrap{display:flex;flex-direction:column;height:calc(100vh - 230px);background:var(--card);
   border:1px solid var(--border);border-radius:16px;overflow:hidden}
 .chat-msgs{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:8px}
@@ -574,9 +572,10 @@ async function createOrder(pvzId){
     return o;
   });
 
+  // ВАЖНО: Добавлен pvzCity!
   const order = {
     items: cleanItems,
-    total, pvzId, pvzAddress: pvz.address, pvzName: pvz.name,
+    total, pvzId, pvzAddress: pvz.address, pvzName: pvz.name, pvzCity: getPvzCity(pvz),
     code6, boxCode, cell, status: 'transit', ts: Date.now(),
     units,
   };
