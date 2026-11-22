@@ -7,7 +7,7 @@
 <style>
 :root{--bg:#0b1020;--card:#141b33;--card2:#1b2444;--text:#e8ecff;--muted:#8b95c2;
   --accent:#5b7cff;--accent2:#7c5bff;--ok:#25d18a;--err:#ff5b6e;--warn:#ffc107;
-  --blue:#5b9cff;--orange:#ff8a00;--border:#26305a}
+  --blue:#5b9cff;--orange:#ff8a00;--border:#26305a;--star:#ffc107}
 *{box-sizing:border-box}
 body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
   background:radial-gradient(1200px 800px at 20% -10%, #1a2350, #0b1020 60%);
@@ -30,6 +30,7 @@ h3{font-size:15px;color:var(--muted);font-weight:600;margin:0 0 10px}
 .input{width:100%;padding:13px 14px;border-radius:12px;border:1px solid var(--border);
   background:#0f1530;color:var(--text);font-size:15px;margin-bottom:10px;font-family:inherit;outline:none}
 .input:focus{border-color:var(--accent)}
+textarea.input{resize:vertical;min-height:70px;font-family:inherit}
 .pin{letter-spacing:14px;text-align:center;font-size:24px}
 .code-input{letter-spacing:8px;text-align:center;font-size:22px;font-family:monospace}
 .btn{width:100%;padding:13px;border-radius:12px;border:none;cursor:pointer;font-size:15px;font-weight:600;
@@ -48,15 +49,19 @@ h3{font-size:15px;color:var(--muted);font-weight:600;margin:0 0 10px}
 .empty{padding:40px 20px;text-align:center;color:var(--muted)}
 .products{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
 .prod{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:14px;
-  display:flex;flex-direction:column;gap:8px;transition:transform .15s}
+  display:flex;flex-direction:column;gap:8px;transition:transform .15s;cursor:pointer}
 .prod:hover{transform:translateY(-2px);border-color:var(--accent)}
-.prod-img{font-size:56px;text-align:center;padding:14px 0;background:#0f1530;border-radius:12px}
+.prod-img{font-size:56px;text-align:center;padding:14px 0;background:#0f1530;border-radius:12px;
+  display:flex;align-items:center;justify-content:center;min-height:110px;overflow:hidden}
+.prod-img img{max-width:100%;max-height:110px;object-fit:cover;border-radius:10px}
 .prod-name{font-size:14px;font-weight:600;line-height:1.3}
+.prod-brand{font-size:11px;color:var(--muted);font-weight:500;margin-top:-4px}
 .prod-price{font-size:16px;font-weight:700;color:#a5b8ff}
 .prod-add{padding:9px;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--accent2));
   border:none;color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit}
 .cart-item{display:flex;align-items:center;gap:12px;padding:12px;background:var(--card);border-radius:14px;margin-bottom:8px}
-.cart-img{width:52px;height:52px;background:#0f1530;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0}
+.cart-img{width:52px;height:52px;background:#0f1530;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0;overflow:hidden}
+.cart-img img{width:100%;height:100%;object-fit:cover}
 .cart-info{flex:1}
 .cart-name{font-size:14px;font-weight:600}
 .cart-price{color:var(--muted);font-size:13px;margin-top:2px}
@@ -83,7 +88,7 @@ h3{font-size:15px;color:var(--muted);font-weight:600;margin:0 0 10px}
   display:none;align-items:center;justify-content:center;padding:20px}
 .modal.show{display:flex}
 .modal-body{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:22px;
-  width:100%;max-width:440px;max-height:92vh;overflow-y:auto}
+  width:100%;max-width:460px;max-height:92vh;overflow-y:auto}
 .modal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
 .modal-head b{font-size:17px}
 .close-btn{background:transparent;border:1px solid var(--border);color:var(--muted);width:32px;height:32px;
@@ -122,54 +127,85 @@ h3{font-size:15px;color:var(--muted);font-weight:600;margin:0 0 10px}
 .nav-badge{background:var(--err);color:#fff;border-radius:999px;padding:1px 7px;font-size:11px;
   margin-left:4px;font-weight:700}
 .ord-meta{font-size:11px;color:var(--muted);margin-top:6px;word-break:break-all;font-family:monospace}
+
+/* === отзывы === */
+.stars{display:inline-flex;gap:2px;font-size:16px;letter-spacing:1px}
+.stars .off{color:#2d3766}
+.review{background:var(--card2);border-radius:12px;padding:12px;margin-bottom:10px}
+.review-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.review-author{font-weight:600;font-size:14px}
+.review-date{font-size:11px;color:var(--muted)}
+.review-text{font-size:13px;line-height:1.45;margin:6px 0}
+.review-photos{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:8px}
+.review-photos img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;cursor:pointer}
+.seller-reply{margin-top:8px;padding:8px 10px;border-left:3px solid var(--accent);background:rgba(91,124,255,.08);
+  border-radius:6px;font-size:12px}
+.seller-reply b{color:#a5b8ff}
+.star-input{display:flex;gap:6px;font-size:34px;justify-content:center;margin:10px 0;cursor:pointer}
+.star-input span{color:#2d3766;transition:color .15s;user-select:none}
+.star-input span.on{color:var(--star)}
+.photo-upload{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}
+.photo-upload .ph{position:relative;width:72px;height:72px;border-radius:10px;overflow:hidden;border:1px solid var(--border)}
+.photo-upload .ph img{width:100%;height:100%;object-fit:cover}
+.photo-upload .ph button{position:absolute;top:2px;right:2px;background:rgba(0,0,0,.7);border:none;color:#fff;
+  width:20px;height:20px;border-radius:50%;cursor:pointer;font-size:11px}
+.photo-upload label{width:72px;height:72px;border:1px dashed var(--border);border-radius:10px;
+  display:flex;align-items:center;justify-content:center;font-size:24px;color:var(--muted);cursor:pointer}
+.photo-upload input[type=file]{display:none}
+
+/* === чат поддержки === */
+.chat-wrap{display:flex;flex-direction:column;height:calc(100vh - 230px);background:var(--card);
+  border:1px solid var(--border);border-radius:16px;overflow:hidden}
+.chat-msgs{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:8px}
+.msg{max-width:80%;padding:10px 12px;border-radius:14px;font-size:14px;line-height:1.4;word-wrap:break-word}
+.msg.in{align-self:flex-start;background:var(--card2);border:1px solid var(--border);border-bottom-left-radius:4px}
+.msg.out{align-self:flex-end;background:linear-gradient(135deg,var(--accent),var(--accent2));border-bottom-right-radius:4px}
+.msg-time{font-size:10px;opacity:.6;margin-top:3px;display:block;text-align:right}
+.chat-input{display:flex;gap:8px;padding:10px;border-top:1px solid var(--border);background:var(--card2)}
+.chat-input input{flex:1;margin:0}
+.chat-input button{width:auto;padding:0 18px;margin:0}
+.profile-name-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.profile-name-row input{margin:0;max-width:220px}
 </style>
 </head>
 <body>
 <div class="wrap" id="root"></div>
 
-<div id="pvzSelectModal" class="modal">
-  <div class="modal-body">
-    <div class="modal-head"><b>Выберите пункт выдачи</b>
-      <button class="close-btn" data-close="pvzSelectModal">✕</button></div>
-    <input id="pvzSearch" class="input" placeholder="Введите город…" autocomplete="off"/>
-    <div id="pvzListBox"></div>
-    <button class="btn" id="btnConfirmOrder" style="margin-top:14px" disabled>Подтвердить заказ</button>
-  </div>
-</div>
+<div id="pvzSelectModal" class="modal"><div class="modal-body">
+  <div class="modal-head"><b>Выберите пункт выдачи</b><button class="close-btn" data-close="pvzSelectModal">✕</button></div>
+  <input id="pvzSearch" class="input" placeholder="Введите город…" autocomplete="off"/>
+  <div id="pvzListBox"></div>
+  <button class="btn" id="btnConfirmOrder" style="margin-top:14px" disabled>Подтвердить заказ</button>
+</div></div>
 
-<div id="orderQrModal" class="modal">
-  <div class="modal-body">
-    <div class="modal-head"><b>Код получения</b>
-      <button class="close-btn" data-close="orderQrModal">✕</button></div>
-    <p class="muted small" style="text-align:center;margin:0 0 8px">Покажите QR или назовите 6-значный код сотруднику ПВЗ</p>
-    <div class="qr-box"><canvas id="orderQrCanvas"></canvas></div>
-    <div class="code-box" id="orderCodeBox">000000</div>
-    <div class="muted small" style="text-align:center">ПВЗ: <b id="orderQrPvz">—</b></div>
-    <div class="muted small" style="text-align:center;margin-top:6px" id="orderQrStatus"></div>
-  </div>
-</div>
+<div id="orderQrModal" class="modal"><div class="modal-body">
+  <div class="modal-head"><b>Код получения</b><button class="close-btn" data-close="orderQrModal">✕</button></div>
+  <p class="muted small" style="text-align:center;margin:0 0 8px">Покажите QR или назовите 6-значный код сотруднику ПВЗ</p>
+  <div class="qr-box"><canvas id="orderQrCanvas"></canvas></div>
+  <div class="code-box" id="orderCodeBox">000000</div>
+  <div class="muted small" style="text-align:center">ПВЗ: <b id="orderQrPvz">—</b></div>
+  <div class="muted small" style="text-align:center;margin-top:6px" id="orderQrStatus"></div>
+</div></div>
 
-<div id="applyPvzModal" class="modal">
-  <div class="modal-body">
-    <div class="modal-head"><b>Стать пунктом выдачи</b>
-      <button class="close-btn" data-close="applyPvzModal">✕</button></div>
-    <input id="applyName" class="input" placeholder="Название ПВЗ"/>
-    <input id="applyCity" class="input" placeholder="Город (например Москва)"/>
-    <input id="applyAddress" class="input" placeholder="Адрес: улица, дом"/>
-    <input id="applySchedule" class="input" placeholder="График работы (например Пн-Пт 10:00-20:00)"/>
-    <button class="btn" id="btnApplyPvz">Отправить заявку</button>
-  </div>
-</div>
+<div id="applyPvzModal" class="modal"><div class="modal-body">
+  <div class="modal-head"><b>Стать пунктом выдачи</b><button class="close-btn" data-close="applyPvzModal">✕</button></div>
+  <input id="applyName" class="input" placeholder="Название ПВЗ"/>
+  <input id="applyCity" class="input" placeholder="Город (например Москва)"/>
+  <input id="applyAddress" class="input" placeholder="Адрес: улица, дом"/>
+  <input id="applySchedule" class="input" placeholder="График работы (например Пн-Пт 10:00-20:00)"/>
+  <button class="btn" id="btnApplyPvz">Отправить заявку</button>
+</div></div>
 
-<div id="boxQrModal" class="modal">
-  <div class="modal-body">
-    <div class="modal-head"><b>QR коробки</b>
-      <button class="close-btn" data-close="boxQrModal">✕</button></div>
-    <div class="qr-box"><canvas id="boxQrCanvas"></canvas></div>
-    <div class="code-box" id="boxQrCode" style="font-size:20px;letter-spacing:2px">box000000000</div>
-    <p class="muted small" style="text-align:center">Покажите этот QR сотруднику ПВЗ при приёмке</p>
-  </div>
-</div>
+<div id="boxQrModal" class="modal"><div class="modal-body">
+  <div class="modal-head"><b>QR коробки</b><button class="close-btn" data-close="boxQrModal">✕</button></div>
+  <div class="qr-box"><canvas id="boxQrCanvas"></canvas></div>
+  <div class="code-box" id="boxQrCode" style="font-size:20px;letter-spacing:2px">box000000000</div>
+  <p class="muted small" style="text-align:center">Покажите этот QR сотруднику ПВЗ при приёмке</p>
+</div></div>
+
+<div id="productModal" class="modal"><div class="modal-body" id="productModalBody"></div></div>
+<div id="reviewModal" class="modal"><div class="modal-body" id="reviewModalBody"></div></div>
+<div id="photoViewer" class="modal" style="background:rgba(0,0,0,.95)"><div style="max-width:100%;max-height:100vh" id="photoViewerBody"></div></div>
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
@@ -189,21 +225,29 @@ const db = firebase.database();
 db.goOnline();
 
 const ADMIN_PHONE = '+79936050979';
-const PRODUCTS = [
-  { id:'p1',  name:'AirPods Pro 2',       price:19990, emoji:'🎧' },
-  { id:'p2',  name:'iPhone 15 128GB',     price:89990, emoji:'📱' },
-  { id:'p3',  name:'Nike Air Zoom',       price:12990, emoji:'👟' },
-  { id:'p4',  name:'Куртка зимняя',       price:8990,  emoji:'🧥' },
-  { id:'p5',  name:'DeLonghi Magnifica',  price:25990, emoji:'☕' },
-  { id:'p6',  name:'Набор кастрюль',      price:6990,  emoji:'🍳' },
-  { id:'p7',  name:'Мастер и Маргарита',  price:890,   emoji:'📚' },
-  { id:'p8',  name:'Рюкзак городской',    price:3990,  emoji:'🎒' },
-  { id:'p9',  name:'Умные часы',          price:15990, emoji:'⌚' },
-  { id:'p10', name:'Плед пушистый',       price:1990,  emoji:'🛏️' },
-  { id:'p11', name:'Пылесос-робот',       price:34990, emoji:'🤖' },
-  { id:'p12', name:'Кружка керамическая', price:590,   emoji:'🍵' },
+
+const STATIC_PRODUCT_DEFS = [
+  { id:'p1',  name:'AirPods Pro 2',       price:19990, emoji:'🎧', brand:'Apple' },
+  { id:'p2',  name:'iPhone 15 128GB',     price:89990, emoji:'📱', brand:'Apple' },
+  { id:'p3',  name:'Nike Air Zoom',       price:12990, emoji:'👟', brand:'Nike' },
+  { id:'p4',  name:'Куртка зимняя',       price:8990,  emoji:'🧥', brand:'' },
+  { id:'p5',  name:'DeLonghi Magnifica',  price:25990, emoji:'☕', brand:'DeLonghi' },
+  { id:'p6',  name:'Набор кастрюль',      price:6990,  emoji:'🍳', brand:'' },
+  { id:'p7',  name:'Мастер и Маргарита',  price:890,   emoji:'📚', brand:'' },
+  { id:'p8',  name:'Рюкзак городской',    price:3990,  emoji:'🎒', brand:'' },
+  { id:'p9',  name:'Умные часы',          price:15990, emoji:'⌚', brand:'' },
+  { id:'p10', name:'Плед пушистый',       price:1990,  emoji:'🛏️', brand:'' },
+  { id:'p11', name:'Пылесос-робот',       price:34990, emoji:'🤖', brand:'' },
+  { id:'p12', name:'Кружка керамическая', price:590,   emoji:'🍵', brand:'' },
 ];
-const PRODUCT_MAP = Object.fromEntries(PRODUCTS.map(p => [p.id, p]));
+const STATIC_PRODUCTS = STATIC_PRODUCT_DEFS.map(p => ({ ...p, qr: 'prod' + p.id, isStatic: true }));
+
+let ALL_PRODUCTS = STATIC_PRODUCTS.slice();
+let PRODUCT_MAP = {};
+function rebuildProductMap(){
+  PRODUCT_MAP = Object.fromEntries(ALL_PRODUCTS.map(p => [p.id, p]));
+}
+rebuildProductMap();
 
 const fmt = n => new Intl.NumberFormat('ru-RU').format(Number(n)||0) + ' ₽';
 const digits = v => String(v||'').replace(/\D/g,'');
@@ -291,10 +335,19 @@ async function generateBoxCode(){
   throw new Error('Не удалось сгенерировать код коробки');
 }
 
-const state = { phone:null, user:null, tab:'shop', pvzList:{}, applications:{}, orderIndex:{}, selectedPvzId:null, pvzSearch:'' };
+const state = {
+  phone:null, user:null, tab:'shop',
+  pvzList:{}, applications:{}, orderIndex:{},
+  selectedPvzId:null, pvzSearch:'',
+  sellerProducts:{}, reviews:{}, // productId -> {reviewId: rev}
+  supportMsgs:{}, supportAccounts:{}, supportUnread:0,
+  activeProductId:null, activeReviewProduct:null,
+  reviewPhotos:[],
+};
 const loginState = { step:'phone', phone:null, mode:null, pinFirst:null, error:'' };
-let unsubUser = null, unsubPvz = null, unsubApps = null, unsubOrders = null;
-let renderPending = false;
+let unsubUser=null, unsubPvz=null, unsubApps=null, unsubOrders=null;
+let unsubProducts=null, unsubSupport=null, unsubSupportAccs=null, unsubReviews=null;
+let renderPending=false;
 function renderSoon(){
   if (renderPending) return;
   renderPending = true;
@@ -373,11 +426,16 @@ function doLogin(phone){
   state.phone = phone; state.tab = 'shop';
   subscribeUser(phone);
 }
+function safeUnsub(fn){ if (fn){ try{ fn(); }catch(e){ console.warn(e); } } }
 function subscribeUser(phone){
-  if (unsubUser){ try { unsubUser(); } catch(e){ console.warn(e); } unsubUser = null; }
-  if (unsubPvz){ try { unsubPvz(); } catch(e){ console.warn(e); } unsubPvz = null; }
-  if (unsubApps){ try { unsubApps(); } catch(e){ console.warn(e); } unsubApps = null; }
-  if (unsubOrders){ try { unsubOrders(); } catch(e){ console.warn(e); } unsubOrders = null; }
+  safeUnsub(unsubUser); unsubUser=null;
+  safeUnsub(unsubPvz); unsubPvz=null;
+  safeUnsub(unsubApps); unsubApps=null;
+  safeUnsub(unsubOrders); unsubOrders=null;
+  safeUnsub(unsubProducts); unsubProducts=null;
+  safeUnsub(unsubSupport); unsubSupport=null;
+  safeUnsub(unsubSupportAccs); unsubSupportAccs=null;
+  safeUnsub(unsubReviews); unsubReviews=null;
 
   const userRef = db.ref('users/'+phone);
   const userCb = snap => {
@@ -392,6 +450,42 @@ function subscribeUser(phone){
   const pvzCb = snap => { state.pvzList = snap.val() || {}; renderSoon(); };
   pvzRef.on('value', pvzCb);
   unsubPvz = () => pvzRef.off('value', pvzCb);
+
+  // Товары продавцов
+  const prodRef = db.ref('sellerProducts');
+  const prodCb = snap => {
+    state.sellerProducts = snap.val() || {};
+    const sellerList = Object.entries(state.sellerProducts)
+      .filter(([,p]) => p && p.active !== false)
+      .map(([id,p]) => ({
+        id,
+        name: p.name || 'Без названия',
+        brand: p.brand || '',
+        price: Number(p.price)||0,
+        photo: p.photo || '',
+        description: p.description || '',
+        qr: p.qr || ('prod' + id),
+        sellerPhone: p.sellerPhone,
+        isStatic: false,
+      }));
+    ALL_PRODUCTS = STATIC_PRODUCTS.slice().concat(sellerList);
+    rebuildProductMap();
+    renderSoon();
+  };
+  prodRef.on('value', prodCb);
+  unsubProducts = () => prodRef.off('value', prodCb);
+
+  // Чат поддержки (сообщения)
+  const suppRef = db.ref('supportMessages/'+phone);
+  const suppCb = snap => {
+    state.supportMsgs = snap.val() || {};
+    let unread = 0;
+    for (const m of Object.values(state.supportMsgs)) if (m.from === 'support' && !m.readAt) unread++;
+    state.supportUnread = unread;
+    renderSoon();
+  };
+  suppRef.on('value', suppCb);
+  unsubSupport = () => suppRef.off('value', suppCb);
 
   if (phone === ADMIN_PHONE){
     const appsRef = db.ref('pvzApplications');
@@ -409,18 +503,26 @@ function subscribeUser(phone){
     };
     ordersRef.on('value', ordersCb);
     unsubOrders = () => ordersRef.off('value', ordersCb);
+
+    const supAccRef = db.ref('supportAccounts');
+    const supAccCb = snap => {
+      state.supportAccounts = snap.val() || {};
+      if (state.tab === 'admin') renderSoon();
+    };
+    supAccRef.on('value', supAccCb);
+    unsubSupportAccs = () => supAccRef.off('value', supAccCb);
   }
 }
 function logout(){
-  if (unsubUser){ try { unsubUser(); } catch(e){ console.warn(e); } unsubUser = null; }
-  if (unsubPvz){ try { unsubPvz(); } catch(e){ console.warn(e); } unsubPvz = null; }
-  if (unsubApps){ try { unsubApps(); } catch(e){ console.warn(e); } unsubApps = null; }
-  if (unsubOrders){ try { unsubOrders(); } catch(e){ console.warn(e); } unsubOrders = null; }
+  safeUnsub(unsubUser); safeUnsub(unsubPvz); safeUnsub(unsubApps); safeUnsub(unsubOrders);
+  safeUnsub(unsubProducts); safeUnsub(unsubSupport); safeUnsub(unsubSupportAccs); safeUnsub(unsubReviews);
+  unsubUser=unsubPvz=unsubApps=unsubOrders=unsubProducts=unsubSupport=unsubSupportAccs=unsubReviews=null;
 
   localStorage.removeItem('mkt_phone');
-  state.phone = null; state.user = null; state.tab = 'shop';
-  state.pvzList = {}; state.applications = {}; state.orderIndex = {};
-  state.selectedPvzId = null; state.pvzSearch = '';
+  state.phone=null; state.user=null; state.tab='shop';
+  state.pvzList={}; state.applications={}; state.orderIndex={};
+  state.selectedPvzId=null; state.pvzSearch='';
+  state.sellerProducts={}; state.reviews={}; state.supportMsgs={}; state.supportAccounts={};
   Object.assign(loginState, { step:'phone', phone:null, mode:null, pinFirst:null, error:'' });
   render();
 }
@@ -457,10 +559,21 @@ async function createOrder(pvzId){
   const cell = Math.floor(Math.random()*250) + 1;
   const orderRef = db.ref('users/'+state.phone+'/orders').push();
   const orderId = orderRef.key;
+
+  // Уникальные QR-коды для каждого физического товара в коробке
+  const units = [];
+  for (const it of items){
+    const baseQr = (PRODUCT_MAP[it.id] && PRODUCT_MAP[it.id].qr) || ('prod' + it.id);
+    for (let i = 0; i < it.qty; i++){
+      units.push({ qr: baseQr, productId: it.id, name: it.name });
+    }
+  }
+
   const order = {
-    items: items.map(i=>({ id:i.id, name:i.name, price:i.price, qty:i.qty, emoji:i.emoji })),
+    items: items.map(i=>({ id:i.id, name:i.name, price:i.price, qty:i.qty, emoji:i.emoji, brand:i.brand||'', photo:i.photo||'' })),
     total, pvzId, pvzAddress: pvz.address, pvzName: pvz.name,
-    code6, boxCode, cell, status: 'transit', ts: Date.now()
+    code6, boxCode, cell, status: 'transit', ts: Date.now(),
+    units,
   };
   const updates = {};
   updates['users/'+state.phone+'/orders/'+orderId] = order;
@@ -468,7 +581,7 @@ async function createOrder(pvzId){
   updates['orderIndex/'+orderId] = {
     phone: state.phone, code6, boxCode, status: 'transit',
     pvzId, pvzName: pvz.name, pvzCity: getPvzCity(pvz),
-    cell, total, ts: Date.now()
+    cell, total, ts: Date.now(),
   };
   updates['codeIndex/'+code6] = { orderId, phone: state.phone, pvzId };
   updates['boxIndex/'+boxCode] = { orderId, phone: state.phone, pvzId };
@@ -477,7 +590,7 @@ async function createOrder(pvzId){
 }
 
 async function submitPvzApplication(name, city, address, schedule){
-  name = name.trim(); city = city.trim(); address = address.trim(); schedule = schedule.trim();
+  name=name.trim(); city=city.trim(); address=address.trim(); schedule=schedule.trim();
   if (!name || !city || !address || !schedule) throw new Error('Заполните все поля');
   const cur = state.user.pvzApp;
   if (cur && cur.status === 'pending') throw new Error('Заявка уже на рассмотрении');
@@ -489,33 +602,23 @@ async function submitPvzApplication(name, city, address, schedule){
   updates['users/'+state.phone+'/pvzApp'] = { name, city, address, schedule, status:'pending', ts };
   await db.ref().update(updates);
 }
-
 async function approvePvz(appId){
   const snap = await db.ref('pvzApplications/'+appId).once('value');
   if (!snap.exists()) throw new Error('Заявка не найдена');
   const app = snap.val();
   if (app.status !== 'pending') throw new Error('Заявка уже обработана');
-
   const login = await generateUniqueLogin();
   const password = genPassword(8);
   const pvzRef = db.ref('pvz').push();
   const pvzId = pvzRef.key;
-
   const updates = {};
-  updates['pvz/'+pvzId] = {
-    login, password, name: app.name, city: app.city || '',
-    address: app.address, schedule: app.schedule,
-    ownerPhone: app.phone, createdAt: Date.now()
-  };
+  updates['pvz/'+pvzId] = { login, password, name: app.name, city: app.city||'', address: app.address, schedule: app.schedule, ownerPhone: app.phone, createdAt: Date.now() };
   updates['pvzLogins/'+login] = { pvzId, password };
   updates['pvzApplications/'+appId+'/status'] = 'approved';
   updates['pvzApplications/'+appId+'/pvzId'] = pvzId;
   updates['pvzApplications/'+appId+'/login'] = login;
   updates['pvzApplications/'+appId+'/password'] = password;
-  updates['users/'+app.phone+'/pvzApp'] = {
-    name: app.name, city: app.city || '', address: app.address, schedule: app.schedule,
-    status: 'approved', login, password, pvzId, ts: app.ts
-  };
+  updates['users/'+app.phone+'/pvzApp'] = { name: app.name, city: app.city||'', address: app.address, schedule: app.schedule, status:'approved', login, password, pvzId, ts: app.ts };
   await db.ref().update(updates);
   toast('ПВЗ одобрен. Логин: ' + login, 'ok');
 }
@@ -525,15 +628,12 @@ async function rejectPvz(appId){
   const app = snap.val();
   const updates = {};
   updates['pvzApplications/'+appId+'/status'] = 'rejected';
-  updates['users/'+app.phone+'/pvzApp'] = {
-    name: app.name, city: app.city || '', address: app.address, schedule: app.schedule,
-    status: 'rejected', ts: app.ts
-  };
+  updates['users/'+app.phone+'/pvzApp'] = { name: app.name, city: app.city||'', address: app.address, schedule: app.schedule, status:'rejected', ts: app.ts };
   await db.ref().update(updates);
   toast('Заявка отклонена', 'ok');
 }
 async function deletePvz(pvzId){
-  if (!confirm('Удалить ПВЗ? Клиенты больше не смогут его выбрать.')) return;
+  if (!confirm('Удалить ПВЗ?')) return;
   const snap = await db.ref('pvz/'+pvzId).once('value');
   if (!snap.exists()) return;
   const pvz = snap.val();
@@ -541,24 +641,17 @@ async function deletePvz(pvzId){
   if (pvz.login) updates['pvzLogins/'+pvz.login] = null;
   if (pvz.ownerPhone){
     const userSnap = await db.ref('users/'+pvz.ownerPhone+'/pvzApp').once('value');
-    if (userSnap.exists()){
-      updates['users/'+pvz.ownerPhone+'/pvzApp'] = {
-        ...userSnap.val(), status: 'deleted', login: null, password: null, pvzId: null
-      };
-    }
+    if (userSnap.exists()) updates['users/'+pvz.ownerPhone+'/pvzApp'] = { ...userSnap.val(), status: 'deleted', login: null, password: null, pvzId: null };
   }
   await db.ref().update(updates);
   toast('ПВЗ удалён', 'ok');
 }
-
 async function changeBoxCode(orderId){
   const o = state.orderIndex[orderId];
   if (!o) throw new Error('Заказ не найден');
-  if (o.status !== 'transit' && o.status !== 'pending')
-    throw new Error('Нельзя менять QR принятого или выданного заказа');
+  if (o.status !== 'transit' && o.status !== 'pending') throw new Error('Нельзя менять QR принятого/выданного заказа');
   const oldCode = o.boxCode;
   if (!oldCode) throw new Error('У заказа нет box-кода');
-
   const newCode = await generateBoxCode();
   const updates = {};
   updates['users/'+o.phone+'/orders/'+orderId+'/boxCode'] = newCode;
@@ -566,13 +659,123 @@ async function changeBoxCode(orderId){
   updates['boxIndex/'+oldCode] = null;
   updates['boxIndex/'+newCode] = { orderId, phone: o.phone, pvzId: o.pvzId };
   await db.ref().update(updates);
-  toast('QR коробки обновлён: ' + newCode, 'ok');
-  if (document.getElementById('boxQrModal').classList.contains('show')){
-    setTimeout(() => {
-      const fresh = state.orderIndex[orderId];
-      if (fresh) showBoxQr(orderId);
-    }, 100);
+  toast('QR коробки обновлён', 'ok');
+}
+async function createSupportAccount(login, password, name){
+  login = String(login||'').trim().toLowerCase();
+  password = String(password||'').trim();
+  name = String(name||'').trim() || login;
+  if (!/^[a-z0-9_\-]{3,20}$/.test(login)) throw new Error('Логин: 3-20 символов a-z0-9_-');
+  if (password.length < 4) throw new Error('Пароль минимум 4 символа');
+  const snap = await db.ref('supportAccounts/'+login).once('value');
+  if (snap.exists()) throw new Error('Такой логин уже занят');
+  await db.ref('supportAccounts/'+login).set({ password, name, createdAt: Date.now() });
+  toast('Аккаунт поддержки создан: ' + login, 'ok');
+}
+async function deleteSupportAccount(login){
+  if (!confirm('Удалить аккаунт поддержки ' + login + '?')) return;
+  await db.ref('supportAccounts/'+login).remove();
+  toast('Удалён', 'ok');
+}
+
+/* ========== ОТЗЫВЫ ========== */
+function canReview(productId){
+  const orders = state.user.orders || {};
+  for (const o of Object.values(orders)){
+    if (o.status !== 'issued' && o.status !== 'ready') continue;
+    if ((o.items||[]).some(i => i.id === productId)) return true;
   }
+  return false;
+}
+function starsHtml(rating, extraClass){
+  const r = Math.round(Number(rating)||0);
+  let html = '<span class="stars ' + (extraClass||'') + '">';
+  for (let i = 1; i <= 5; i++) html += `<span class="${i<=r?'':'off'}">★</span>`;
+  return html + '</span>';
+}
+function avgRating(reviews){
+  const arr = Object.values(reviews||{});
+  if (!arr.length) return 0;
+  return arr.reduce((s,r)=>s+(Number(r.rating)||0),0) / arr.length;
+}
+async function loadReviews(productId){
+  const snap = await db.ref('reviews/'+productId).once('value');
+  return snap.val() || {};
+}
+async function submitReview(productId, rating, text, photos){
+  if (!canReview(productId)) throw new Error('Отзыв можно оставить только после покупки');
+  if (!rating || rating < 1 || rating > 5) throw new Error('Поставьте оценку от 1 до 5');
+  const name = (state.user.name || '').trim() || state.phone;
+  const revRef = db.ref('reviews/'+productId).push();
+  const review = {
+    phone: state.phone,
+    name,
+    rating: Number(rating),
+    text: String(text||'').trim(),
+    photos: Array.isArray(photos) ? photos.slice(0,3) : [],
+    createdAt: Date.now(),
+  };
+  await revRef.set(review);
+}
+async function compressImage(file, maxW, quality){
+  maxW = maxW || 800; quality = quality || 0.7;
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let w = img.width, h = img.height;
+        if (w > maxW){ h = h * maxW / w; w = maxW; }
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        try { resolve(canvas.toDataURL('image/jpeg', quality)); }
+        catch(e){ reject(e); }
+      };
+      img.onerror = reject;
+      img.src = e.target.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+/* ========== ПОДДЕРЖКА ========== */
+async function sendSupportMessage(text){
+  text = String(text||'').trim();
+  if (!text) return;
+  const name = (state.user.name || '').trim() || state.phone;
+  const msgRef = db.ref('supportMessages/'+state.phone).push();
+  const msg = { from:'client', text, ts: Date.now(), name };
+  const updates = {};
+  updates['supportMessages/'+state.phone+'/'+msgRef.key] = msg;
+  updates['supportThreads/'+state.phone] = {
+    phone: state.phone, name,
+    lastMessage: text, lastTs: msg.ts,
+    status: 'open',
+  };
+  await db.ref().update(updates);
+}
+async function markSupportRead(){
+  const msgs = state.supportMsgs || {};
+  const updates = {};
+  let changed = false;
+  for (const [id, m] of Object.entries(msgs)){
+    if (m.from === 'support' && !m.readAt){
+      updates['supportMessages/'+state.phone+'/'+id+'/readAt'] = Date.now();
+      changed = true;
+    }
+  }
+  if (changed) await db.ref().update(updates);
+}
+
+/* ========== RENDER ========== */
+function productImgHtml(p, big){
+  const sz = big ? 180 : 56;
+  if (p && p.photo){
+    return `<img src="${esc(p.photo)}" alt="" style="${big?'max-width:100%;max-height:'+sz+'px;border-radius:12px;object-fit:cover;display:block;margin:0 auto':'width:100%;height:100%;object-fit:cover'}"/>`;
+  }
+  return `<span style="font-size:${sz}px">${esc(p.emoji||'📦')}</span>`;
 }
 
 function render(){
@@ -584,6 +787,7 @@ function render(){
     { id:'shop', label:'Магазин' },
     { id:'cart', label:'Корзина' + (cartCount ? `<span class="nav-badge">${cartCount}</span>` : '') },
     { id:'orders', label:'Заказы' },
+    { id:'support', label:'Поддержка' + (state.supportUnread ? `<span class="nav-badge">${state.supportUnread}</span>` : '') },
     { id:'profile', label:'Профиль' },
   ];
   if (isAdmin) tabs.push({ id:'admin', label:'Админ' });
@@ -593,6 +797,7 @@ function render(){
     case 'shop': content = viewShop(); break;
     case 'cart': content = viewCart(); break;
     case 'orders': content = viewOrders(); break;
+    case 'support': content = viewSupport(); break;
     case 'profile': content = viewProfile(isAdmin); break;
     case 'admin': content = viewAdmin(); break;
     default: content = viewShop();
@@ -600,7 +805,7 @@ function render(){
   document.getElementById('root').innerHTML = `
     <div class="header">
       <div class="logo-sm">Курсив <span>Маркет</span></div>
-      <div class="muted small">${esc(state.phone)}</div>
+      <div class="muted small">${esc(state.user.name || state.phone)}</div>
     </div>
     <div class="tabs">
       ${tabs.map(t=>`<button class="tab ${state.tab===t.id?'active':''}" data-tab="${t.id}">${t.label}</button>`).join('')}
@@ -608,14 +813,17 @@ function render(){
     <div class="content">${content}</div>
   `;
   bindView();
+  if (state.tab === 'support') setTimeout(markSupportRead, 200);
 }
 
 function viewShop(){
+  if (!ALL_PRODUCTS.length) return `<h2>Каталог</h2><div class="empty">Товаров пока нет</div>`;
   return `<h2>Каталог</h2><div class="products">
-    ${PRODUCTS.map(p=>`
-      <div class="prod">
-        <div class="prod-img">${p.emoji}</div>
+    ${ALL_PRODUCTS.map(p=>`
+      <div class="prod" data-prodview="${p.id}">
+        <div class="prod-img">${productImgHtml(p,false)}</div>
         <div class="prod-name">${esc(p.name)}</div>
+        ${p.brand?`<div class="prod-brand">${esc(p.brand)}</div>`:''}
         <div class="prod-price">${fmt(p.price)}</div>
         <button class="prod-add" data-addcart="${p.id}">В корзину</button>
       </div>`).join('')}
@@ -629,7 +837,7 @@ function viewCart(){
   return `<h2>Корзина</h2>
     ${items.map(i=>`
       <div class="cart-item">
-        <div class="cart-img">${i.emoji}</div>
+        <div class="cart-img">${productImgHtml(i,false)}</div>
         <div class="cart-info">
           <div class="cart-name">${esc(i.name)}</div>
           <div class="cart-price">${fmt(i.price)} × ${i.qty} = ${fmt(i.price*i.qty)}</div>
@@ -657,24 +865,45 @@ function viewOrders(){
         <span class="muted small">${new Date(o.ts).toLocaleString('ru-RU')}</span>
         <span class="badge ${st}">${statusLabel(o.status)}</span>
       </div>
-      <div style="font-size:14px;margin-bottom:6px">${o.items.map(i=>`${i.emoji} ${esc(i.name)} ×${i.qty}`).join('<br>')}</div>
+      <div style="font-size:14px;margin-bottom:6px">${o.items.map(i=>`${i.emoji||''} ${esc(i.name)} ×${i.qty}`).join('<br>')}</div>
       <div class="muted small" style="margin-bottom:10px">ПВЗ: ${esc(o.pvzName||'')} · ${esc(o.pvzAddress||'')}</div>
       ${isReturned && o.returnReason ? `<div class="reason-box">↩ Возврат: ${esc(o.returnReason)}</div>` : ''}
       <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px">
         <b>${fmt(o.total)}</b>
         ${!isIssued && !isReturned
           ? `<button class="btn small" data-showqr="${o.id}">QR и код</button>`
-          : `<span class="muted small">${isIssued
-              ? 'Выдан ' + (o.issuedAt ? new Date(o.issuedAt).toLocaleDateString('ru-RU') : '')
-              : 'Возвращён ' + (o.returnedAt ? new Date(o.returnedAt).toLocaleDateString('ru-RU') : '')}</span>`}
+          : `<span class="muted small">${isIssued ? 'Выдан ' + (o.issuedAt ? new Date(o.issuedAt).toLocaleDateString('ru-RU') : '') : 'Возвращён ' + (o.returnedAt ? new Date(o.returnedAt).toLocaleDateString('ru-RU') : '')}</span>`}
       </div>
+      ${isIssued ? `<div style="margin-top:10px">
+        ${o.items.map(i=>`<button class="btn small ghost" data-reviewprod="${i.id}" style="margin:3px 4px 0 0">★ Отзыв: ${esc(i.name)}</button>`).join('')}
+      </div>` : ''}
     </div>`;
   }).join('');
+}
+
+function viewSupport(){
+  const msgs = Object.entries(state.supportMsgs||{}).map(([id,m])=>({id,...m})).sort((a,b)=>a.ts-b.ts);
+  return `<h2>Поддержка</h2>
+    <p class="muted small" style="margin:0 0 12px">Задайте вопрос — оператор ответит здесь же</p>
+    <div class="chat-wrap">
+      <div class="chat-msgs" id="chatMsgs">
+        ${msgs.length ? msgs.map(m=>`
+          <div class="msg ${m.from==='support'?'in':'out'}">
+            ${esc(m.text)}
+            <span class="msg-time">${new Date(m.ts).toLocaleString('ru-RU', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</span>
+          </div>`).join('') : '<div class="empty">Пока нет сообщений</div>'}
+      </div>
+      <div class="chat-input">
+        <input id="supportInput" class="input" placeholder="Введите сообщение…" autocomplete="off" style="margin-bottom:0"/>
+        <button class="btn" id="btnSendSupport" style="width:auto">➤</button>
+      </div>
+    </div>`;
 }
 
 function viewProfile(isAdmin){
   const pa = state.user.pvzApp;
   const canApply = !pa || pa.status === 'rejected' || pa.status === 'deleted';
+  const myName = state.user.name || '';
 
   let pvzBlock = '';
   if (pa && pa.status === 'pending'){
@@ -683,16 +912,12 @@ function viewProfile(isAdmin){
       <div style="display:flex;justify-content:space-between;margin-bottom:6px">
         <span class="muted">Статус</span><span class="badge pending">На рассмотрении</span>
       </div>
-      <div class="muted small">Название: ${esc(pa.name)}</div>
-      <div class="muted small">Город: ${esc(pa.city||'—')}</div>
-      <div class="muted small">Адрес: ${esc(pa.address)}</div>
-      <div class="muted small">График: ${esc(pa.schedule)}</div>
+      <div class="muted small">${esc(pa.name)} · ${esc(pa.city||'—')} · ${esc(pa.address)}</div>
     </div>`;
   } else if (pa && pa.status === 'approved'){
     pvzBlock = `<div class="card">
       <h3>ПВЗ одобрен</h3>
       <div class="muted small" style="margin-bottom:8px">${esc(pa.name)} · ${esc(pa.city||'')}, ${esc(pa.address)}</div>
-      <div class="muted small" style="margin-bottom:8px">🕒 ${esc(pa.schedule||'—')}</div>
       <div class="creds-box">
         <div class="row"><span>Логин:</span><b>${esc(pa.login)}</b></div>
         <div class="row"><span>Пароль:</span><b>${esc(pa.password)}</b></div>
@@ -700,13 +925,18 @@ function viewProfile(isAdmin){
       <p class="muted small" style="margin:0">Войдите в приложение ПВЗ по этим данным (файл <code>pvz.html</code>).</p>
     </div>`;
   } else if (pa && pa.status === 'rejected'){
-    pvzBlock = `<div class="card">
-      <h3>Заявка отклонена</h3>
-      <p class="muted small" style="margin:0">Вы можете подать заявку снова.</p>
-    </div>`;
+    pvzBlock = `<div class="card"><h3>Заявка отклонена</h3><p class="muted small" style="margin:0">Можно подать снова.</p></div>`;
   }
 
   return `<h2>Профиль</h2>
+    <div class="card">
+      <h3>Имя профиля</h3>
+      <p class="muted small" style="margin:0 0 8px">Это имя видят продавцы и поддержка</p>
+      <div class="profile-name-row">
+        <input id="profileName" class="input" placeholder="Ваше имя" value="${esc(myName)}" style="margin-bottom:0"/>
+        <button class="btn small" id="btnSaveName" style="margin-left:8px">Сохранить</button>
+      </div>
+    </div>
     <div class="card">
       <div style="display:flex;justify-content:space-between;margin-bottom:8px"><span class="muted">Телефон</span><b>${esc(state.phone)}</b></div>
       <div style="display:flex;justify-content:space-between"><span class="muted">Роль</span>
@@ -715,7 +945,7 @@ function viewProfile(isAdmin){
     ${pvzBlock}
     ${canApply && !isAdmin ? `<div class="card">
       <h3>Стать пунктом выдачи</h3>
-      <p class="muted small" style="margin:0 0 10px">Оставьте заявку — после одобрения вы получите логин и пароль для панели ПВЗ.</p>
+      <p class="muted small" style="margin:0 0 10px">Оставьте заявку — получите логин и пароль для панели ПВЗ.</p>
       <button class="btn" id="btnOpenApply">Подать заявку</button>
     </div>` : ''}
     <button class="btn ghost" id="btnLogout">Выйти</button>`;
@@ -726,21 +956,18 @@ function viewAdmin(){
   const pending = apps.filter(([,a])=>a.status==='pending');
   const others = apps.filter(([,a])=>a.status!=='pending');
   const pvzList = Object.entries(state.pvzList);
-
-  const allOrders = Object.entries(state.orderIndex || {}).map(([id,v])=>({id,...v})).sort((a,b)=>b.ts-a.ts);
+  const allOrders = Object.entries(state.orderIndex||{}).map(([id,v])=>({id,...v})).sort((a,b)=>b.ts-a.ts);
   const activeOrders = allOrders.filter(o => o.status === 'transit' || o.status === 'pending');
   const returnedOrders = allOrders.filter(o => o.status === 'returned');
   const doneOrders = allOrders.filter(o => o.status === 'ready' || o.status === 'issued');
+  const supAccs = Object.entries(state.supportAccounts || {});
 
   return `<h2>Админ-панель</h2>
     <div class="card">
       <h3>Активные заявки ПВЗ (${pending.length})</h3>
       ${pending.length ? pending.map(([id,a])=>`
         <div class="app-row">
-          <div class="app-head">
-            <b>${esc(a.name)}</b>
-            <span class="muted small">${new Date(a.ts).toLocaleString('ru-RU')}</span>
-          </div>
+          <div class="app-head"><b>${esc(a.name)}</b><span class="muted small">${new Date(a.ts).toLocaleString('ru-RU')}</span></div>
           <div class="schedule">🏙 ${esc(a.city||'—')}</div>
           <div class="address">📍 ${esc(a.address)}</div>
           <div class="schedule">🕒 ${esc(a.schedule)}</div>
@@ -753,37 +980,45 @@ function viewAdmin(){
     </div>
 
     <div class="card">
+      <h3>Аккаунты поддержки (${supAccs.length})</h3>
+      <input id="supLogin" class="input" placeholder="Логин (a-z, 3-20)" autocomplete="off"/>
+      <input id="supPass" class="input" placeholder="Пароль" autocomplete="new-password"/>
+      <input id="supName" class="input" placeholder="Имя оператора" autocomplete="off"/>
+      <button class="btn" id="btnCreateSup">Создать аккаунт</button>
+      <div style="margin-top:10px">
+        ${supAccs.length ? supAccs.map(([l,a])=>`
+          <div class="app-row">
+            <div class="app-head"><b>${esc(l)}</b><span class="muted small">${esc(a.name||'')}</span></div>
+            <div class="contact">Пароль: <b style="font-family:monospace;color:#a5b8ff">${esc(a.password||'')}</b></div>
+            <button class="btn err small" data-delsup="${esc(l)}">Удалить</button>
+          </div>`).join('') : '<div class="muted small">Нет аккаунтов</div>'}
+      </div>
+    </div>
+
+    <div class="card">
       <h3>Коробки в пути (${activeOrders.length})</h3>
       ${activeOrders.length ? activeOrders.map(o=>`
         <div class="app-row">
-          <div class="app-head">
-            <b>Код ${esc(o.code6||'')}</b>
-            <span class="badge ${statusClass(o.status)}">${statusLabel(o.status)}</span>
-          </div>
+          <div class="app-head"><b>Код ${esc(o.code6||'')}</b><span class="badge ${statusClass(o.status)}">${statusLabel(o.status)}</span></div>
           <div class="address">🏙 ${esc(o.pvzCity||'')} · ${esc(o.pvzName||'')}</div>
-          <div class="contact">👤 ${esc(o.phone)} · 💰 ${fmt(o.total)} · 📦 ячейка ${o.cell||'—'}</div>
+          <div class="contact">👤 ${esc(o.phone)} · 💰 ${fmt(o.total)} · 📦 ${o.cell||'—'}</div>
           <div class="ord-meta">Box: ${esc(o.boxCode||'—')}</div>
           <div class="row-btns" style="margin-top:8px">
             <button class="btn small" data-boxqr="${o.id}">QR коробки</button>
             <button class="btn small ghost" data-changeboxqr="${o.id}">Изменить QR</button>
           </div>
         </div>`).join('') : '<div class="muted small">Нет коробок в пути</div>'}
-      ${doneOrders.length ? `<div class="muted small" style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border)">
-        ✅ Принято или выдано: ${doneOrders.length}
-      </div>` : ''}
+      ${doneOrders.length ? `<div class="muted small" style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border)">✅ Принято/выдано: ${doneOrders.length}</div>` : ''}
     </div>
 
     ${returnedOrders.length ? `<div class="card">
       <h3>Возвраты (${returnedOrders.length})</h3>
-      ${returnedOrders.slice(0, 20).map(o=>`
+      ${returnedOrders.slice(0,20).map(o=>`
         <div class="app-row">
-          <div class="app-head">
-            <b>Код ${esc(o.code6||'')}</b>
-            <span class="badge returned">Возвращён</span>
-          </div>
+          <div class="app-head"><b>Код ${esc(o.code6||'')}</b><span class="badge returned">Возвращён</span></div>
           <div class="address">🏙 ${esc(o.pvzCity||'')} · ${esc(o.pvzName||'')}</div>
           <div class="contact">👤 ${esc(o.phone)} · 💰 ${fmt(o.total)}</div>
-          ${o.returnReason ? `<div class="reason-box">↩ ${esc(o.returnReason)}</div>` : ''}
+          ${o.returnReason?`<div class="reason-box">↩ ${esc(o.returnReason)}</div>`:''}
         </div>`).join('')}
     </div>` : ''}
 
@@ -791,17 +1026,12 @@ function viewAdmin(){
       <h3>История заявок ПВЗ</h3>
       ${others.map(([id,a])=>`
         <div class="app-row">
-          <div class="app-head">
-            <b>${esc(a.name)}</b>
-            <span class="badge ${a.status}">${a.status==='approved'?'Одобрена':'Отклонена'}</span>
-          </div>
-          <div class="schedule">🏙 ${esc(a.city||'—')}</div>
-          <div class="address">📍 ${esc(a.address)}</div>
-          ${a.status==='approved' && a.login ? `
-            <div class="creds-box">
-              <div class="row"><span>Логин:</span><b>${esc(a.login)}</b></div>
-              <div class="row"><span>Пароль:</span><b>${esc(a.password||'')}</b></div>
-            </div>` : ''}
+          <div class="app-head"><b>${esc(a.name)}</b><span class="badge ${a.status}">${a.status==='approved'?'Одобрена':'Отклонена'}</span></div>
+          <div class="schedule">🏙 ${esc(a.city||'—')} · 📍 ${esc(a.address)}</div>
+          ${a.status==='approved' && a.login ? `<div class="creds-box">
+            <div class="row"><span>Логин:</span><b>${esc(a.login)}</b></div>
+            <div class="row"><span>Пароль:</span><b>${esc(a.password||'')}</b></div>
+          </div>` : ''}
         </div>`).join('')}
     </div>` : ''}
 
@@ -812,7 +1042,6 @@ function viewAdmin(){
           <div class="app-head"><b>${esc(p.name)}</b></div>
           <div class="schedule">🏙 ${esc(getPvzCity(p))}</div>
           <div class="address">📍 ${esc(p.address)}</div>
-          <div class="schedule">🕒 ${esc(p.schedule||'—')}</div>
           <div class="contact">📞 ${esc(p.ownerPhone||'')} · 🔑 ${esc(p.login||'—')}</div>
           <button class="btn err small" data-delpvz="${id}">Удалить ПВЗ</button>
         </div>`).join('') : '<div class="muted small">ПВЗ пока нет</div>'}
@@ -823,32 +1052,51 @@ function bindView(){
   const $ = id => document.getElementById(id);
   if ($('btnLogout')) $('btnLogout').onclick = logout;
   if ($('btnOpenApply')) $('btnOpenApply').onclick = () => {
-    $('applyName').value = ''; $('applyCity').value = '';
-    $('applyAddress').value = ''; $('applySchedule').value = '';
+    $('applyName').value=''; $('applyCity').value=''; $('applyAddress').value=''; $('applySchedule').value='';
     openModal('applyPvzModal');
   };
   if ($('btnCheckout')) $('btnCheckout').onclick = openPvzSelectModal;
+  if ($('btnSaveName')) $('btnSaveName').onclick = async () => {
+    const name = $('profileName').value.trim();
+    await db.ref('users/'+state.phone+'/name').set(name);
+    toast('Имя сохранено', 'ok');
+  };
+  if ($('btnSendSupport')) $('btnSendSupport').onclick = async () => {
+    const inp = $('supportInput');
+    const v = inp.value;
+    if (!v.trim()) return;
+    inp.value = '';
+    try { await sendSupportMessage(v); } catch(e){ toast(e.message,'err'); }
+  };
+  if ($('supportInput')) $('supportInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') $('btnSendSupport').click();
+  });
+  if ($('btnCreateSup')) $('btnCreateSup').onclick = async () => {
+    try {
+      await createSupportAccount($('supLogin').value, $('supPass').value, $('supName').value);
+      $('supLogin').value=''; $('supPass').value=''; $('supName').value='';
+    } catch(e){ toast(e.message,'err'); }
+  };
+  const chatMsgs = $('chatMsgs');
+  if (chatMsgs) chatMsgs.scrollTop = chatMsgs.scrollHeight;
 }
 
 function filterPvzEntries(){
   const q = (state.pvzSearch||'').trim().toLowerCase();
   const entries = Object.entries(state.pvzList);
   if (!q) return entries;
-  return entries.filter(([id, p]) => getPvzCity(p).toLowerCase().startsWith(q));
+  return entries.filter(([id,p]) => getPvzCity(p).toLowerCase().startsWith(q));
 }
-
 function renderPvzList(){
   const entries = filterPvzEntries();
   const box = document.getElementById('pvzListBox');
   if (!Object.keys(state.pvzList).length){
     box.innerHTML = '<div class="empty">Пока нет доступных ПВЗ</div>';
-    document.getElementById('btnConfirmOrder').disabled = true;
-    return;
+    document.getElementById('btnConfirmOrder').disabled = true; return;
   }
   if (!entries.length){
     box.innerHTML = '<div class="empty">ПВЗ в этом городе не найдены</div>';
-    document.getElementById('btnConfirmOrder').disabled = !state.selectedPvzId;
-    return;
+    document.getElementById('btnConfirmOrder').disabled = !state.selectedPvzId; return;
   }
   box.innerHTML = entries.map(([id,p])=>`
     <div class="pvz-option ${state.selectedPvzId===id?'selected':''}" data-pvzpick="${id}">
@@ -870,15 +1118,13 @@ function renderPvzList(){
   });
   document.getElementById('btnConfirmOrder').disabled = !state.selectedPvzId;
 }
-
 function openPvzSelectModal(){
   if (!getCartItems().length){ toast('Корзина пуста','err'); return; }
   state.pvzSearch = '';
   document.getElementById('pvzSearch').value = '';
   renderPvzList();
   document.getElementById('pvzSearch').oninput = (e) => {
-    state.pvzSearch = e.target.value;
-    renderPvzList();
+    state.pvzSearch = e.target.value; renderPvzList();
   };
   document.getElementById('btnConfirmOrder').onclick = async () => {
     if (!state.selectedPvzId) return;
@@ -896,36 +1142,153 @@ function openPvzSelectModal(){
   };
   openModal('pvzSelectModal');
 }
-
 function showOrderQr(orderId){
   const o = (state.user.orders||{})[orderId];
   if (!o) return;
-  new QRious({
-    element: document.getElementById('orderQrCanvas'),
-    value: 'mkt:'+orderId,
-    size: 240, background: '#ffffff', foreground: '#0b1020', level: 'M'
-  });
+  new QRious({ element: document.getElementById('orderQrCanvas'), value: 'mkt:'+orderId, size: 240, background: '#ffffff', foreground: '#0b1020', level: 'M' });
   document.getElementById('orderCodeBox').textContent = o.code6;
   document.getElementById('orderQrPvz').textContent = o.pvzName || o.pvzAddress || '—';
   const stEl = document.getElementById('orderQrStatus');
-  stEl.innerHTML = (o.status === 'issued' || o.status === 'returned')
-    ? `<span class="badge ${statusClass(o.status)}">${statusLabel(o.status)}</span>`
-    : `<span class="badge ${statusClass(o.status)}">${statusLabel(o.status)}</span>`;
+  stEl.innerHTML = `<span class="badge ${statusClass(o.status)}">${statusLabel(o.status)}</span>`;
   openModal('orderQrModal');
 }
-
 function showBoxQr(orderId){
   const o = state.orderIndex[orderId];
   if (!o || !o.boxCode){ toast('Нет box-кода','err'); return; }
-  new QRious({
-    element: document.getElementById('boxQrCanvas'),
-    value: o.boxCode,
-    size: 240, background: '#ffffff', foreground: '#0b1020', level: 'M'
-  });
+  new QRious({ element: document.getElementById('boxQrCanvas'), value: o.boxCode, size: 240, background: '#ffffff', foreground: '#0b1020', level: 'M' });
   document.getElementById('boxQrCode').textContent = o.boxCode;
   openModal('boxQrModal');
 }
 
+/* ========== PRODUCT DETAIL + REVIEWS ========== */
+async function openProductModal(productId){
+  const p = PRODUCT_MAP[productId];
+  if (!p) return;
+  state.activeProductId = productId;
+  const body = document.getElementById('productModalBody');
+  body.innerHTML = `
+    <div class="modal-head"><b>${esc(p.name)}</b><button class="close-btn" data-close="productModal">✕</button></div>
+    <div style="text-align:center;padding:14px;background:#0f1530;border-radius:14px;margin-bottom:12px">
+      ${productImgHtml(p, true)}
+    </div>
+    ${p.brand?`<div class="muted small" style="text-align:center;margin-bottom:4px">Бренд: <b style="color:#a5b8ff">${esc(p.brand)}</b></div>`:''}
+    <div style="font-size:24px;font-weight:800;text-align:center;color:#a5b8ff;margin-bottom:8px">${fmt(p.price)}</div>
+    ${p.description?`<div class="muted small" style="margin-bottom:12px;line-height:1.5">${esc(p.description)}</div>`:''}
+    <button class="btn" id="btnModalAdd">В корзину</button>
+    <h3 style="margin-top:18px">Отзывы <span id="revAvg" class="muted small"></span></h3>
+    <div id="productReviewsBox"><div class="muted small">Загрузка…</div></div>
+  `;
+  document.getElementById('btnModalAdd').onclick = async () => {
+    await addToCart(productId);
+  };
+  openModal('productModal');
+
+  const reviews = await loadReviews(productId);
+  const box = document.getElementById('productReviewsBox');
+  const revList = Object.entries(reviews).map(([id,r])=>({id,...r})).sort((a,b)=>b.createdAt-a.createdAt);
+  const avg = avgRating(reviews);
+  const cnt = revList.length;
+  document.getElementById('revAvg').innerHTML = cnt
+    ? `· ${starsHtml(avg)} <b>${avg.toFixed(1)}</b> (${cnt})`
+    : '';
+  const canWrite = canReview(productId);
+  box.innerHTML = `
+    ${canWrite ? `<button class="btn ghost small" id="btnWriteReview" style="width:100%;margin-bottom:10px">★ Оставить отзыв</button>` : ''}
+    ${revList.length ? revList.map(r=>`
+      <div class="review">
+        <div class="review-head">
+          <div>
+            <div class="review-author">${esc(r.name||r.phone||'Клиент')}</div>
+            <div>${starsHtml(r.rating)}</div>
+          </div>
+          <div class="review-date">${new Date(r.createdAt).toLocaleDateString('ru-RU')}</div>
+        </div>
+        ${r.text?`<div class="review-text">${esc(r.text)}</div>`:''}
+        ${r.photos && r.photos.length ? `<div class="review-photos">
+          ${r.photos.map(src=>`<img src="${esc(src)}" data-viewphoto="${esc(src)}" alt=""/>`).join('')}
+        </div>`:''}
+        ${r.sellerReply?`<div class="seller-reply"><b>Ответ продавца:</b> ${esc(r.sellerReply.text)}</div>`:''}
+      </div>`).join('') : '<div class="muted small" style="padding:12px;text-align:center">Пока нет отзывов</div>'}
+  `;
+  if (canWrite){
+    document.getElementById('btnWriteReview').onclick = () => openReviewModal(productId);
+  }
+}
+
+function openReviewModal(productId){
+  if (!canReview(productId)){ toast('Оставить отзыв можно только после покупки','err'); return; }
+  state.activeReviewProduct = productId;
+  state.reviewPhotos = [];
+  const p = PRODUCT_MAP[productId];
+  const body = document.getElementById('reviewModalBody');
+  body.innerHTML = `
+    <div class="modal-head"><b>Отзыв о товаре</b><button class="close-btn" data-close="reviewModal">✕</button></div>
+    <div class="muted small" style="text-align:center;margin-bottom:6px">${esc(p.name)}</div>
+    <div class="star-input" id="starInput">
+      ${[1,2,3,4,5].map(i=>`<span data-star="${i}">★</span>`).join('')}
+    </div>
+    <textarea id="reviewText" class="input" placeholder="Поделитесь впечатлением…"></textarea>
+    <label class="muted small" style="display:block;margin-bottom:6px">Фото (до 3)</label>
+    <div class="photo-upload" id="reviewPhotos">
+      <label for="reviewFile">＋</label>
+      <input type="file" id="reviewFile" accept="image/*" multiple/>
+    </div>
+    <button class="btn" id="btnSubmitReview">Отправить отзыв</button>
+  `;
+  let rating = 0;
+  const stars = body.querySelectorAll('#starInput span');
+  stars.forEach(s => {
+    s.onclick = () => {
+      rating = Number(s.dataset.star);
+      stars.forEach(x => x.classList.toggle('on', Number(x.dataset.star) <= rating));
+    };
+  });
+  const photosBox = document.getElementById('reviewPhotos');
+  const fileInput = document.getElementById('reviewFile');
+  fileInput.onchange = async (e) => {
+    const files = Array.from(e.target.files || []);
+    for (const f of files){
+      if (state.reviewPhotos.length >= 3) { toast('Максимум 3 фото','err'); break; }
+      try {
+        const data = await compressImage(f, 800, 0.65);
+        state.reviewPhotos.push(data);
+      } catch(err){ console.warn(err); }
+    }
+    fileInput.value = '';
+    // refresh
+    const label = photosBox.querySelector('label');
+    photosBox.querySelectorAll('.ph').forEach(x=>x.remove());
+    state.reviewPhotos.forEach((src, idx) => {
+      const div = document.createElement('div');
+      div.className = 'ph';
+      div.innerHTML = `<img src="${esc(src)}"/><button data-rmphoto="${idx}">✕</button>`;
+      photosBox.insertBefore(div, label);
+    });
+    photosBox.querySelectorAll('[data-rmphoto]').forEach(b => {
+      b.onclick = (ev) => {
+        ev.preventDefault();
+        state.reviewPhotos.splice(Number(b.dataset.rmphoto), 1);
+        fileInput.dispatchEvent(new Event('change'));
+      };
+    });
+  };
+  document.getElementById('btnSubmitReview').onclick = async () => {
+    const btn = document.getElementById('btnSubmitReview');
+    btn.disabled = true; btn.textContent = 'Отправляем…';
+    try {
+      await submitReview(productId, rating, document.getElementById('reviewText').value, state.reviewPhotos);
+      toast('Спасибо за отзыв!', 'ok');
+      closeModal('reviewModal');
+      if (state.activeProductId === productId) openProductModal(productId);
+    } catch(err){
+      toast(err.message, 'err');
+      btn.disabled = false; btn.textContent = 'Отправить отзыв';
+    }
+  };
+  openModal('reviewModal');
+}
+
+/* ========== DELEGATES ========== */
 document.addEventListener('click', async (e) => {
   const closeBtn = e.target.closest('[data-close]');
   if (closeBtn){ closeModal(closeBtn.dataset.close); return; }
@@ -935,6 +1298,9 @@ document.addEventListener('click', async (e) => {
 
   const addCart = e.target.closest('[data-addcart]');
   if (addCart){ await addToCart(addCart.dataset.addcart); return; }
+
+  const prodView = e.target.closest('[data-prodview]');
+  if (prodView && !addCart){ openProductModal(prodView.dataset.prodview); return; }
 
   const qtyBtn = e.target.closest('[data-qty]');
   if (qtyBtn){
@@ -950,15 +1316,26 @@ document.addEventListener('click', async (e) => {
   const showQr = e.target.closest('[data-showqr]');
   if (showQr){ showOrderQr(showQr.dataset.showqr); return; }
 
+  const revBtn = e.target.closest('[data-reviewprod]');
+  if (revBtn){ openReviewModal(revBtn.dataset.reviewprod); return; }
+
+  const viewPhoto = e.target.closest('[data-viewphoto]');
+  if (viewPhoto){
+    const src = viewPhoto.dataset.viewphoto;
+    document.getElementById('photoViewerBody').innerHTML = `<img src="${esc(src)}" style="max-width:100%;max-height:95vh;border-radius:12px;display:block;margin:0 auto"/>`;
+    openModal('photoViewer');
+    return;
+  }
+  if (e.target.id === 'photoViewer' || (e.target.closest('#photoViewer') && !e.target.closest('img'))){
+    closeModal('photoViewer');
+    return;
+  }
+
   const boxQr = e.target.closest('[data-boxqr]');
   if (boxQr){ showBoxQr(boxQr.dataset.boxqr); return; }
 
   const changeBoxQr = e.target.closest('[data-changeboxqr]');
-  if (changeBoxQr){
-    try { await changeBoxCode(changeBoxQr.dataset.changeboxqr); }
-    catch(err){ toast(err.message,'err'); }
-    return;
-  }
+  if (changeBoxQr){ try { await changeBoxCode(changeBoxQr.dataset.changeboxqr); } catch(err){ toast(err.message,'err'); } return; }
 
   const approve = e.target.closest('[data-approve]');
   if (approve){ try { await approvePvz(approve.dataset.approve); } catch(err){ toast(err.message,'err'); } return; }
@@ -968,6 +1345,9 @@ document.addEventListener('click', async (e) => {
 
   const delPvz = e.target.closest('[data-delpvz]');
   if (delPvz){ try { await deletePvz(delPvz.dataset.delpvz); } catch(err){ toast(err.message,'err'); } return; }
+
+  const delSup = e.target.closest('[data-delsup]');
+  if (delSup){ try { await deleteSupportAccount(delSup.dataset.delsup); } catch(err){ toast(err.message,'err'); } return; }
 });
 
 document.getElementById('btnApplyPvz').onclick = async () => {
