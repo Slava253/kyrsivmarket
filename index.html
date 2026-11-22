@@ -39,6 +39,7 @@ textarea.input{resize:vertical;min-height:70px;font-family:inherit}
 .btn.ghost{background:transparent;border:1px solid var(--border);color:var(--muted)}
 .btn.small{width:auto;padding:8px 14px;font-size:13px;border-radius:10px}
 .btn.ok{background:var(--ok)} .btn.err{background:var(--err)}
+.btn.warn{background:var(--warn); color: #000}
 .btn:disabled{opacity:.5;cursor:wait}
 .login-wrap{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px}
 .panel{width:100%;max-width:400px;background:var(--card);border:1px solid var(--border);border-radius:20px;padding:26px}
@@ -72,7 +73,8 @@ textarea.input{resize:vertical;min-height:70px;font-family:inherit}
 .cart-remove{background:transparent;border:none;color:var(--err);font-size:18px;cursor:pointer;padding:4px 8px}
 .total-row{display:flex;justify-content:space-between;align-items:center;padding:16px;margin-top:8px;
   background:var(--card2);border-radius:14px;font-size:16px;font-weight:600}
-.order{padding:14px;background:var(--card);border:1px solid var(--border);border-radius:14px;margin-bottom:10px}
+.order{padding:14px;background:var(--card);border:1px solid var(--border);border-radius:14px;margin-bottom:10px; cursor:pointer; transition:.15s}
+.order:hover {border-color:var(--accent);}
 .order-head{display:flex;justify-content:space-between;margin-bottom:8px;align-items:center}
 .badge{padding:3px 10px;border-radius:999px;font-size:11px;font-weight:600;white-space:nowrap}
 .badge.transit{background:rgba(91,156,255,.15);color:var(--blue)}
@@ -80,8 +82,10 @@ textarea.input{resize:vertical;min-height:70px;font-family:inherit}
 .badge.issued{background:rgba(139,149,194,.15);color:var(--muted)}
 .badge.returned{background:rgba(255,138,0,.15);color:var(--orange)}
 .badge.pending{background:rgba(255,193,7,.15);color:var(--warn)}
-.badge.approved{background:rgba(37,209,138,.15);color:var(--ok)}
-.badge.rejected{background:rgba(255,91,110,.15);color:var(--err)}
+.badge.paid{background:rgba(37,209,138,.15);color:var(--ok)}
+.badge.unpaid{background:rgba(255,91,110,.15);color:var(--err)}
+.badge.courier{background:rgba(124,91,255,.15);color:var(--accent2)}
+.badge.sc{background:rgba(255,193,7,.15);color:var(--warn)}
 .reason-box{padding:10px;border-radius:10px;background:rgba(255,138,0,.08);border:1px solid rgba(255,138,0,.3);
   margin-top:8px;font-size:13px;color:#ffb366}
 .modal{position:fixed;inset:0;background:rgba(0,0,0,.8);backdrop-filter:blur(6px);z-index:1000;
@@ -169,20 +173,61 @@ textarea.input{resize:vertical;min-height:70px;font-family:inherit}
 <body>
 <div class="wrap" id="root"></div>
 
-<div id="pvzSelectModal" class="modal"><div class="modal-body">
-  <div class="modal-head"><b>Выберите пункт выдачи</b><button class="close-btn" data-close="pvzSelectModal">✕</button></div>
-  <input id="pvzSearch" class="input" placeholder="Введите город…" autocomplete="off"/>
-  <div id="pvzListBox"></div>
-  <button class="btn" id="btnConfirmOrder" style="margin-top:14px" disabled>Подтвердить заказ</button>
+<div id="checkoutModal" class="modal"><div class="modal-body">
+  <div class="modal-head"><b>Оформление заказа</b><button class="close-btn" data-close="checkoutModal">✕</button></div>
+  
+  <h3>Способ получения</h3>
+  <label class="pvz-option selected" id="delTypePvz" style="margin-bottom:12px;">
+    <input type="radio" name="delType" value="pvz" checked style="accent-color:var(--accent);width:20px;height:20px;margin:0 4px 0 0;"/>
+    <div class="pvz-info"><div class="pvz-name">В пункт выдачи (ПВЗ)</div></div>
+  </label>
+  <label class="pvz-option" id="delTypeCourier" style="margin-bottom:12px;">
+    <input type="radio" name="delType" value="courier" style="accent-color:var(--accent);width:20px;height:20px;margin:0 4px 0 0;"/>
+    <div class="pvz-info"><div class="pvz-name">Курьером до двери</div></div>
+  </label>
+  
+  <div id="courierAddressBox" style="display:none;">
+    <input id="courierAddressInput" class="input" placeholder="Адрес доставки (улица, дом, квартира)"/>
+  </div>
+
+  <h3 style="margin-top:16px;">Способ оплаты</h3>
+  <label class="pvz-option selected" id="payTypeWallet" style="margin-bottom:8px;">
+    <input type="radio" name="payType" value="wallet" checked style="accent-color:var(--accent);width:20px;height:20px;margin:0 4px 0 0;"/>
+    <div class="pvz-info"><div class="pvz-name">Сразу (с кошелька)</div><div class="pvz-city" id="walletBalanceLabel">Баланс: 0 ₽</div></div>
+  </label>
+  <label class="pvz-option" id="payTypeCash" style="margin-bottom:16px;">
+    <input type="radio" name="payType" value="cash" style="accent-color:var(--accent);width:20px;height:20px;margin:0 4px 0 0;"/>
+    <div class="pvz-info"><div class="pvz-name">При получении</div><div class="pvz-address">Оплата курьеру или в ПВЗ</div></div>
+  </label>
+
+  <div id="pvzSelectBox">
+    <input id="pvzSearch" class="input" placeholder="Поиск ПВЗ по городу…" autocomplete="off"/>
+    <div id="pvzListBox" style="max-height:200px;overflow-y:auto;margin-bottom:14px;"></div>
+  </div>
+
+  <button class="btn" id="btnConfirmOrder">Подтвердить заказ</button>
+</div></div>
+
+<div id="walletModal" class="modal"><div class="modal-body">
+  <div class="modal-head"><b>Пополнение кошелька</b><button class="close-btn" data-close="walletModal">✕</button></div>
+  <input id="walletTopupAmount" class="input" type="number" placeholder="Сумма, ₽" min="1"/>
+  <button class="btn" id="btnTopupWallet">Пополнить</button>
 </div></div>
 
 <div id="orderQrModal" class="modal"><div class="modal-body">
   <div class="modal-head"><b>Код получения</b><button class="close-btn" data-close="orderQrModal">✕</button></div>
-  <p class="muted small" style="text-align:center;margin:0 0 8px">Покажите QR или назовите 6-значный код сотруднику ПВЗ</p>
+  <p class="muted small" style="text-align:center;margin:0 0 8px" id="orderQrDesc">Покажите QR сотруднику</p>
   <div class="qr-box"><canvas id="orderQrCanvas"></canvas></div>
   <div class="code-box" id="orderCodeBox">000000</div>
-  <div class="muted small" style="text-align:center">ПВЗ: <b id="orderQrPvz">—</b></div>
+  <div class="muted small" style="text-align:center">ПВЗ/Курьер: <b id="orderQrPvz">—</b></div>
   <div class="muted small" style="text-align:center;margin-top:6px" id="orderQrStatus"></div>
+</div></div>
+
+<div id="scQrModal" class="modal"><div class="modal-body">
+  <div class="modal-head"><b>Вход для СЦ</b><button class="close-btn" data-close="scQrModal">✕</button></div>
+  <p class="muted small" style="text-align:center;margin:0 0 8px">Покажите этот QR сотруднику СЦ для входа</p>
+  <div class="qr-box"><canvas id="scQrCanvas"></canvas></div>
+  <div class="code-box" id="scQrCode" style="font-size:20px;letter-spacing:2px">sc:000000</div>
 </div></div>
 
 <div id="applyPvzModal" class="modal"><div class="modal-body">
@@ -190,7 +235,7 @@ textarea.input{resize:vertical;min-height:70px;font-family:inherit}
   <input id="applyName" class="input" placeholder="Название ПВЗ"/>
   <input id="applyCity" class="input" placeholder="Город (например Москва)"/>
   <input id="applyAddress" class="input" placeholder="Адрес: улица, дом"/>
-  <input id="applySchedule" class="input" placeholder="График работы (например Пн-Пт 10:00-20:00)"/>
+  <input id="applySchedule" class="input" placeholder="График работы"/>
   <button class="btn" id="btnApplyPvz">Отправить заявку</button>
 </div></div>
 
@@ -198,7 +243,6 @@ textarea.input{resize:vertical;min-height:70px;font-family:inherit}
   <div class="modal-head"><b>QR коробки</b><button class="close-btn" data-close="boxQrModal">✕</button></div>
   <div class="qr-box"><canvas id="boxQrCanvas"></canvas></div>
   <div class="code-box" id="boxQrCode" style="font-size:20px;letter-spacing:2px">box000000000</div>
-  <p class="muted small" style="text-align:center">Покажите этот QR сотруднику ПВЗ при приёмке</p>
 </div></div>
 
 <div id="productModal" class="modal"><div class="modal-body" id="productModalBody"></div></div>
@@ -280,18 +324,29 @@ function toast(msg, type){
 function openModal(id){ document.getElementById(id).classList.add('show'); }
 function closeModal(id){ document.getElementById(id).classList.remove('show'); }
 
+function getTodayStr() {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+
 function statusLabel(s){
+  if (s === 'sc_pending') return 'В сортировочном центре';
   if (s === 'pending' || s === 'transit') return 'В пути';
   if (s === 'ready') return 'Готов к выдаче';
   if (s === 'issued') return 'Выдан';
   if (s === 'returned') return 'Возвращён';
+  if (s === 'courier_pvz') return 'Едет забирать заказ';
+  if (s === 'courier_going') return 'Выезжает к вам';
+  if (s === 'courier_arrived') return 'Приехал';
   return s || '—';
 }
 function statusClass(s){
+  if (s === 'sc_pending') return 'sc';
   if (s === 'pending' || s === 'transit') return 'transit';
   if (s === 'ready') return 'ready';
   if (s === 'issued') return 'issued';
   if (s === 'returned') return 'returned';
+  if (s === 'courier_pvz' || s === 'courier_going' || s === 'courier_arrived') return 'courier';
   return 'transit';
 }
 function getPvzCity(pvz){
@@ -299,6 +354,301 @@ function getPvzCity(pvz){
   if (pvz.city) return pvz.city;
   const parts = String(pvz.address||'').split(',');
   return parts[0] ? parts[0].trim() : '';
+}
+
+const state = {
+  phone:null, user:null, tab:'shop',
+  pvzList:{}, applications:{}, orderIndex:{}, couriers:{}, sortingCenters:{},
+  selectedPvzId:null, pvzSearch:'',
+  sellerProducts:{}, reviews:{},
+  supportMsgs:{}, supportAccounts:{}, supportUnread:0,
+  activeProductId:null, activeReviewProduct:null,
+  reviewPhotos:[],
+};
+const loginState = { step:'phone', phone:null, mode:null, pinFirst:null, error:'' };
+let unsubUser=null, unsubPvz=null, unsubApps=null, unsubOrders=null;
+let unsubProducts=null, unsubSupport=null, unsubSupportAccs=null, unsubReviews=null, unsubCouriers=null, unsubSCs=null;
+let renderPending=false;
+function renderSoon(){
+  if (renderPending) return;
+  renderPending = true;
+  requestAnimationFrame(()=>{ renderPending = false; render(); });
+}
+
+function renderLogin(){
+  const l = loginState;
+  const root = document.getElementById('root');
+  let body = '';
+  if (l.step === 'phone'){
+    body = `
+      <div class="brand"><div class="logo">К</div><h1>Курсив Маркет</h1></div>
+      <h2>Вход или регистрация</h2>
+      <p class="muted">Введите номер телефона</p>
+      <input id="phoneInput" class="input" inputmode="tel" placeholder="+7 999 123-45-67" autocomplete="off"/>
+      <div class="err" id="err"></div>
+      <button class="btn" id="btnNext">Продолжить</button>
+    `;
+  } else {
+    const isCreate = l.mode === 'create';
+    const confirm = isCreate && l.pinFirst !== null;
+    const title = isCreate ? (confirm ? 'Повторите PIN-код' : 'Придумайте PIN-код') : 'Введите PIN-код';
+    body = `
+      <div class="brand"><div class="logo">К</div><h1>Курсив Маркет</h1></div>
+      <h2>${title}</h2>
+      <p class="muted">${esc(l.phone||'')}</p>
+      <input id="pinInput" class="input pin" inputmode="numeric" maxlength="4" type="password" placeholder="••••" autocomplete="off"/>
+      <div class="err" id="err">${esc(l.error||'')}</div>
+      <button class="btn" id="btnPin">${isCreate ? (confirm?'Создать':'Далее') : 'Войти'}</button>
+      <button class="btn ghost" id="btnBack" style="margin-top:8px">Назад</button>
+    `;
+  }
+  root.innerHTML = `<div class="login-wrap"><div class="panel">${body}</div></div>`;
+
+  if (l.step === 'phone'){
+    const inp = document.getElementById('phoneInput');
+    attachPhoneInput(inp); inp.focus();
+    document.getElementById('btnNext').onclick = async () => {
+      if (digits(inp.value).length < 11){ document.getElementById('err').textContent = 'Введите номер полностью'; return; }
+      const phone = normalizePhone(inp.value);
+      document.getElementById('btnNext').textContent = 'Проверяем…';
+      const snap = await db.ref('users/'+phone).once('value');
+      loginState.phone = phone; loginState.error = '';
+      if (snap.exists()){ loginState.mode = 'login'; }
+      else { loginState.mode = 'create'; loginState.pinFirst = null; }
+      loginState.step = 'pin'; render();
+    };
+    inp.addEventListener('keydown', e => { if (e.key==='Enter') document.getElementById('btnNext').click(); });
+  } else {
+    const pin = document.getElementById('pinInput');
+    pin.focus();
+    document.getElementById('btnPin').onclick = async () => {
+      const v = pin.value.trim();
+      if (!/^\d{4}$/.test(v)){ loginState.error = 'PIN из 4 цифр'; render(); return; }
+      if (loginState.mode === 'login'){
+        const snap = await db.ref('users/'+loginState.phone+'/pin').once('value');
+        if (snap.val() === v) doLogin(loginState.phone);
+        else { loginState.error = 'Неверный PIN'; render(); }
+      } else {
+        if (loginState.pinFirst === null){ loginState.pinFirst = v; loginState.error = ''; render(); }
+        else {
+          if (loginState.pinFirst !== v){ loginState.error = 'PIN не совпадает'; loginState.pinFirst = null; render(); return; }
+          await db.ref('users/'+loginState.phone).set({ pin: v, createdAt: Date.now(), wallet: 0 });
+          doLogin(loginState.phone);
+        }
+      }
+    };
+    pin.addEventListener('keydown', e => { if (e.key==='Enter') document.getElementById('btnPin').click(); });
+    document.getElementById('btnBack').onclick = () => { loginState.step='phone'; loginState.error=''; render(); };
+  }
+}
+
+function doLogin(phone){
+  localStorage.setItem('mkt_phone', phone);
+  state.phone = phone; state.tab = 'shop';
+  subscribeUser(phone);
+}
+function safeUnsub(fn){ if (fn){ try{ fn(); }catch(e){ console.warn(e); } } }
+function subscribeUser(phone){
+  safeUnsub(unsubUser); unsubUser=null;
+  safeUnsub(unsubPvz); unsubPvz=null;
+  safeUnsub(unsubApps); unsubApps=null;
+  safeUnsub(unsubOrders); unsubOrders=null;
+  safeUnsub(unsubProducts); unsubProducts=null;
+  safeUnsub(unsubSupport); unsubSupport=null;
+  safeUnsub(unsubSupportAccs); unsubSupportAccs=null;
+  safeUnsub(unsubReviews); unsubReviews=null;
+  safeUnsub(unsubCouriers); unsubCouriers=null;
+  safeUnsub(unsubSCs); unsubSCs=null;
+
+  const userRef = db.ref('users/'+phone);
+  const userCb = snap => {
+    if (!snap.exists()){ logout(); return; }
+    state.user = snap.val();
+    if (state.user.wallet === undefined) db.ref('users/'+phone+'/wallet').set(0);
+    renderSoon();
+  };
+  userRef.on('value', userCb);
+  unsubUser = () => userRef.off('value', userCb);
+
+  const pvzRef = db.ref('pvz');
+  const pvzCb = snap => { state.pvzList = snap.val() || {}; renderSoon(); };
+  pvzRef.on('value', pvzCb);
+  unsubPvz = () => pvzRef.off('value', pvzCb);
+
+  const prodRef = db.ref('sellerProducts');
+  const prodCb = snap => {
+    state.sellerProducts = snap.val() || {};
+    const sellerList = Object.entries(state.sellerProducts)
+      .filter(([,p]) => p && p.active !== false)
+      .map(([id,p]) => ({
+        id, name: p.name || 'Без названия', brand: p.brand || '', price: Number(p.price)||0,
+        photo: p.photo || '', description: p.description || '', qr: p.qr || ('prod' + id),
+        sellerPhone: p.sellerPhone, isStatic: false,
+      }));
+    ALL_PRODUCTS = STATIC_PRODUCTS.slice().concat(sellerList);
+    rebuildProductMap();
+    renderSoon();
+  };
+  prodRef.on('value', prodCb);
+  unsubProducts = () => prodRef.off('value', prodCb);
+
+  const suppRef = db.ref('supportMessages/'+phone);
+  const suppCb = snap => {
+    state.supportMsgs = snap.val() || {};
+    let unread = 0;
+    for (const m of Object.values(state.supportMsgs)) if (m.from === 'support' && !m.readAt) unread++;
+    state.supportUnread = unread;
+    renderSoon();
+  };
+  suppRef.on('value', suppCb);
+  unsubSupport = () => suppRef.off('value', suppCb);
+
+  if (phone === ADMIN_PHONE){
+    const appsRef = db.ref('pvzApplications');
+    const appsCb = snap => { state.applications = snap.val() || {}; if (state.tab === 'admin') renderSoon(); };
+    appsRef.on('value', appsCb);
+    unsubApps = () => appsRef.off('value', appsCb);
+
+    const ordersRef = db.ref('orderIndex');
+    const ordersCb = snap => { state.orderIndex = snap.val() || {}; if (state.tab === 'admin') renderSoon(); };
+    ordersRef.on('value', ordersCb);
+    unsubOrders = () => ordersRef.off('value', ordersCb);
+
+    const supAccRef = db.ref('supportAccounts');
+    const supAccCb = snap => { state.supportAccounts = snap.val() || {}; if (state.tab === 'admin') renderSoon(); };
+    supAccRef.on('value', supAccCb);
+    unsubSupportAccs = () => supAccRef.off('value', supAccCb);
+
+    const courRef = db.ref('couriers');
+    const courCb = snap => { state.couriers = snap.val() || {}; if (state.tab === 'admin') renderSoon(); };
+    courRef.on('value', courCb);
+    unsubCouriers = () => courRef.off('value', courCb);
+
+    const scRef = db.ref('sortingCenters');
+    const scCb = snap => { state.sortingCenters = snap.val() || {}; if (state.tab === 'admin') renderSoon(); };
+    scRef.on('value', scCb);
+    unsubSCs = () => scRef.off('value', scCb);
+  }
+}
+function logout(){
+  safeUnsub(unsubUser); safeUnsub(unsubPvz); safeUnsub(unsubApps); safeUnsub(unsubOrders);
+  safeUnsub(unsubProducts); safeUnsub(unsubSupport); safeUnsub(unsubSupportAccs); safeUnsub(unsubReviews);
+  safeUnsub(unsubCouriers); safeUnsub(unsubSCs);
+  unsubUser=unsubPvz=unsubApps=unsubOrders=unsubProducts=unsubSupport=unsubSupportAccs=unsubReviews=unsubCouriers=unsubSCs=null;
+
+  localStorage.removeItem('mkt_phone');
+  state.phone=null; state.user=null; state.tab='shop';
+  state.pvzList={}; state.applications={}; state.orderIndex={}; state.couriers={}; state.sortingCenters={};
+  state.selectedPvzId=null; state.pvzSearch='';
+  state.sellerProducts={}; state.reviews={}; state.supportMsgs={}; state.supportAccounts={};
+  Object.assign(loginState, { step:'phone', phone:null, mode:null, pinFirst:null, error:'' });
+  render();
+}
+
+async function addToCart(pid){
+  await db.ref('users/'+state.phone+'/cart/'+pid).transaction(q => (q||0) + 1);
+  toast('Добавлено в корзину', 'ok');
+}
+async function setCartQty(pid, qty){
+  if (qty <= 0) return db.ref('users/'+state.phone+'/cart/'+pid).remove();
+  await db.ref('users/'+state.phone+'/cart/'+pid).set(qty);
+}
+async function removeFromCart(pid){ await db.ref('users/'+state.phone+'/cart/'+pid).remove(); }
+function getCartItems(){
+  const cart = state.user.cart || {};
+  const items = [];
+  for (const [pid, qty] of Object.entries(cart)){
+    const p = PRODUCT_MAP[pid];
+    if (p && qty > 0) items.push({ ...p, qty });
+  }
+  return items;
+}
+function getCartTotal(items){ return items.reduce((s,i)=>s+i.price*i.qty, 0); }
+function getCartCount(){ return Object.values(state.user.cart||{}).reduce((s,q)=>s+(Number(q)||0), 0); }
+
+async function createOrder(pvzId, deliveryType, address, paymentMethod){
+  const items = getCartItems();
+  if (!items.length) throw new Error('Корзина пуста');
+  const total = getCartTotal(items);
+  const code6 = await generateCode6();
+  const boxCode = await generateBoxCode();
+  const cell = Math.floor(Math.random()*250) + 1;
+  const orderRef = db.ref('users/'+state.phone+'/orders').push();
+  const orderId = orderRef.key;
+
+  const units = [];
+  for (const it of items){
+    const baseQr = (PRODUCT_MAP[it.id] && PRODUCT_MAP[it.id].qr) || ('prod' + it.id);
+    for (let i = 0; i < it.qty; i++){
+      units.push({ qr: baseQr, productId: it.id, name: it.name });
+    }
+  }
+
+  const cleanItems = items.map(i => {
+    const o = { id: i.id, name: i.name, price: i.price, qty: i.qty };
+    if (i.emoji) o.emoji = i.emoji;
+    if (i.brand) o.brand = i.brand;
+    if (i.photo) o.photo = i.photo;
+    return o;
+  });
+
+  let pvzName = '', pvzAddress = '', pvzCity = '';
+  if (deliveryType === 'pvz') {
+    const pvz = state.pvzList[pvzId];
+    if (!pvz) throw new Error('Выберите ПВЗ');
+    pvzName = pvz.name;
+    pvzAddress = pvz.address;
+    pvzCity = getPvzCity(pvz);
+  } else {
+    pvzName = 'Курьер';
+    pvzAddress = address;
+    pvzCity = 'Курьерская доставка';
+  }
+
+  let payStatus = 'unpaid';
+  if (paymentMethod === 'wallet') {
+    const bal = state.user.wallet || 0;
+    if (bal < total) throw new Error('Недостаточно средств на кошельке');
+    payStatus = 'paid';
+    await db.ref('users/'+state.phone+'/wallet').transaction(w => (w||0) - total);
+  }
+
+  const order = {
+    items: cleanItems,
+    total, pvzId: pvzId || 'courier', pvzAddress, pvzName, pvzCity,
+    code6, boxCode, cell, status: 'sc_pending', ts: Date.now(),
+    deliveryType, paymentMethod, paymentStatus: payStatus,
+    units,
+  };
+  const updates = {};
+  updates['users/'+state.phone+'/orders/'+orderId] = order;
+  updates['users/'+state.phone+'/cart'] = null;
+  updates['orderIndex/'+orderId] = {
+    phone: state.phone, code6, boxCode, status: 'sc_pending',
+    pvzId: pvzId || 'courier', pvzName, pvzCity,
+    cell, total, ts: Date.now(), deliveryType, paymentMethod, paymentStatus: payStatus,
+  };
+  updates['codeIndex/'+code6] = { orderId, phone: state.phone, pvzId: pvzId || 'courier' };
+  updates['boxIndex/'+boxCode] = { orderId, phone: state.phone, pvzId: pvzId || 'courier' };
+  await db.ref().update(updates);
+  return { orderId, code6, boxCode };
+}
+
+async function payOrder(orderId) {
+  const oSnap = await db.ref('users/'+state.phone+'/orders/'+orderId).once('value');
+  if (!oSnap.exists()) throw new Error('Заказ не найден');
+  const o = oSnap.val();
+  if (o.paymentStatus === 'paid') throw new Error('Заказ уже оплачен');
+  
+  const bal = state.user.wallet || 0;
+  if (bal < o.total) throw new Error('Недостаточно средств. Пополните кошелек.');
+  
+  const updates = {};
+  updates['users/'+state.phone+'/wallet'] = bal - o.total;
+  updates['users/'+state.phone+'/orders/'+orderId+'/paymentStatus'] = 'paid';
+  updates['orderIndex/'+orderId+'/paymentStatus'] = 'paid';
+  await db.ref().update(updates);
+  toast('Заказ успешно оплачен', 'ok');
 }
 
 function genPassword(len=8){
@@ -331,266 +681,6 @@ async function generateBoxCode(){
     if (!snap.exists()) return code;
   }
   throw new Error('Не удалось сгенерировать код коробки');
-}
-
-const state = {
-  phone:null, user:null, tab:'shop',
-  pvzList:{}, applications:{}, orderIndex:{},
-  selectedPvzId:null, pvzSearch:'',
-  sellerProducts:{}, reviews:{},
-  supportMsgs:{}, supportAccounts:{}, supportUnread:0,
-  activeProductId:null, activeReviewProduct:null,
-  reviewPhotos:[],
-};
-const loginState = { step:'phone', phone:null, mode:null, pinFirst:null, error:'' };
-let unsubUser=null, unsubPvz=null, unsubApps=null, unsubOrders=null;
-let unsubProducts=null, unsubSupport=null, unsubSupportAccs=null, unsubReviews=null;
-let renderPending=false;
-function renderSoon(){
-  if (renderPending) return;
-  renderPending = true;
-  requestAnimationFrame(()=>{ renderPending = false; render(); });
-}
-
-function renderLogin(){
-  const l = loginState;
-  const root = document.getElementById('root');
-  let body = '';
-  if (l.step === 'phone'){
-    body = `
-      <div class="brand"><div class="logo">К</div><h1>Курсив Маркет</h1></div>
-      <h2>Вход или регистрация</h2>
-      <p class="muted">Введите номер телефона</p>
-      <input id="phoneInput" class="input" inputmode="tel" placeholder="+7 999 123-45-67" autocomplete="off"/>
-      <div class="err" id="err"></div>
-      <button class="btn" id="btnNext">Продолжить</button>
-    `;
-  } else {
-    const isCreate = l.mode === 'create';
-    const confirm = isCreate && l.pinFirst !== null;
-    const title = isCreate ? (confirm ? 'Повторите PIN-код' : 'Придумайте PIN-код (4 цифры)') : 'Введите PIN-код';
-    body = `
-      <div class="brand"><div class="logo">К</div><h1>Курсив Маркет</h1></div>
-      <h2>${title}</h2>
-      <p class="muted">${esc(l.phone||'')}</p>
-      <input id="pinInput" class="input pin" inputmode="numeric" maxlength="4" type="password" placeholder="••••" autocomplete="off"/>
-      <div class="err" id="err">${esc(l.error||'')}</div>
-      <button class="btn" id="btnPin">${isCreate ? (confirm?'Создать':'Далее') : 'Войти'}</button>
-      <button class="btn ghost" id="btnBack" style="margin-top:8px">Назад</button>
-    `;
-  }
-  root.innerHTML = `<div class="login-wrap"><div class="panel">${body}</div></div>`;
-
-  if (l.step === 'phone'){
-    const inp = document.getElementById('phoneInput');
-    attachPhoneInput(inp); inp.focus();
-    document.getElementById('btnNext').onclick = async () => {
-      if (digits(inp.value).length < 11){ document.getElementById('err').textContent = 'Введите номер полностью'; return; }
-      const phone = normalizePhone(inp.value);
-      document.getElementById('btnNext').textContent = 'Проверяем…';
-      const snap = await db.ref('users/'+phone).once('value');
-      loginState.phone = phone; loginState.error = '';
-      if (snap.exists()){ loginState.mode = 'login'; }
-      else { loginState.mode = 'create'; loginState.pinFirst = null; }
-      loginState.step = 'pin'; render();
-    };
-    inp.addEventListener('keydown', e => { if (e.key==='Enter') document.getElementById('btnNext').click(); });
-  } else {
-    const pin = document.getElementById('pinInput');
-    pin.focus();
-    document.getElementById('btnPin').onclick = async () => {
-      const v = pin.value.trim();
-      if (!/^\d{4}$/.test(v)){ loginState.error = 'PIN должен быть из 4 цифр'; render(); return; }
-      if (loginState.mode === 'login'){
-        const snap = await db.ref('users/'+loginState.phone+'/pin').once('value');
-        if (snap.val() === v) doLogin(loginState.phone);
-        else { loginState.error = 'Неверный PIN'; render(); }
-      } else {
-        if (loginState.pinFirst === null){ loginState.pinFirst = v; loginState.error = ''; render(); }
-        else {
-          if (loginState.pinFirst !== v){ loginState.error = 'PIN не совпадает'; loginState.pinFirst = null; render(); return; }
-          await db.ref('users/'+loginState.phone).set({ pin: v, createdAt: Date.now() });
-          doLogin(loginState.phone);
-        }
-      }
-    };
-    pin.addEventListener('keydown', e => { if (e.key==='Enter') document.getElementById('btnPin').click(); });
-    document.getElementById('btnBack').onclick = () => { loginState.step='phone'; loginState.error=''; render(); };
-  }
-}
-
-function doLogin(phone){
-  localStorage.setItem('mkt_phone', phone);
-  state.phone = phone; state.tab = 'shop';
-  subscribeUser(phone);
-}
-function safeUnsub(fn){ if (fn){ try{ fn(); }catch(e){ console.warn(e); } } }
-function subscribeUser(phone){
-  safeUnsub(unsubUser); unsubUser=null;
-  safeUnsub(unsubPvz); unsubPvz=null;
-  safeUnsub(unsubApps); unsubApps=null;
-  safeUnsub(unsubOrders); unsubOrders=null;
-  safeUnsub(unsubProducts); unsubProducts=null;
-  safeUnsub(unsubSupport); unsubSupport=null;
-  safeUnsub(unsubSupportAccs); unsubSupportAccs=null;
-  safeUnsub(unsubReviews); unsubReviews=null;
-
-  const userRef = db.ref('users/'+phone);
-  const userCb = snap => {
-    if (!snap.exists()){ logout(); return; }
-    state.user = snap.val();
-    renderSoon();
-  };
-  userRef.on('value', userCb);
-  unsubUser = () => userRef.off('value', userCb);
-
-  const pvzRef = db.ref('pvz');
-  const pvzCb = snap => { state.pvzList = snap.val() || {}; renderSoon(); };
-  pvzRef.on('value', pvzCb);
-  unsubPvz = () => pvzRef.off('value', pvzCb);
-
-  const prodRef = db.ref('sellerProducts');
-  const prodCb = snap => {
-    state.sellerProducts = snap.val() || {};
-    const sellerList = Object.entries(state.sellerProducts)
-      .filter(([,p]) => p && p.active !== false)
-      .map(([id,p]) => ({
-        id,
-        name: p.name || 'Без названия',
-        brand: p.brand || '',
-        price: Number(p.price)||0,
-        photo: p.photo || '',
-        description: p.description || '',
-        qr: p.qr || ('prod' + id),
-        sellerPhone: p.sellerPhone,
-        isStatic: false,
-      }));
-    ALL_PRODUCTS = STATIC_PRODUCTS.slice().concat(sellerList);
-    rebuildProductMap();
-    renderSoon();
-  };
-  prodRef.on('value', prodCb);
-  unsubProducts = () => prodRef.off('value', prodCb);
-
-  const suppRef = db.ref('supportMessages/'+phone);
-  const suppCb = snap => {
-    state.supportMsgs = snap.val() || {};
-    let unread = 0;
-    for (const m of Object.values(state.supportMsgs)) if (m.from === 'support' && !m.readAt) unread++;
-    state.supportUnread = unread;
-    renderSoon();
-  };
-  suppRef.on('value', suppCb);
-  unsubSupport = () => suppRef.off('value', suppCb);
-
-  if (phone === ADMIN_PHONE){
-    const appsRef = db.ref('pvzApplications');
-    const appsCb = snap => {
-      state.applications = snap.val() || {};
-      if (state.tab === 'admin') renderSoon();
-    };
-    appsRef.on('value', appsCb);
-    unsubApps = () => appsRef.off('value', appsCb);
-
-    const ordersRef = db.ref('orderIndex');
-    const ordersCb = snap => {
-      state.orderIndex = snap.val() || {};
-      if (state.tab === 'admin') renderSoon();
-    };
-    ordersRef.on('value', ordersCb);
-    unsubOrders = () => ordersRef.off('value', ordersCb);
-
-    const supAccRef = db.ref('supportAccounts');
-    const supAccCb = snap => {
-      state.supportAccounts = snap.val() || {};
-      if (state.tab === 'admin') renderSoon();
-    };
-    supAccRef.on('value', supAccCb);
-    unsubSupportAccs = () => supAccRef.off('value', supAccCb);
-  }
-}
-function logout(){
-  safeUnsub(unsubUser); safeUnsub(unsubPvz); safeUnsub(unsubApps); safeUnsub(unsubOrders);
-  safeUnsub(unsubProducts); safeUnsub(unsubSupport); safeUnsub(unsubSupportAccs); safeUnsub(unsubReviews);
-  unsubUser=unsubPvz=unsubApps=unsubOrders=unsubProducts=unsubSupport=unsubSupportAccs=unsubReviews=null;
-
-  localStorage.removeItem('mkt_phone');
-  state.phone=null; state.user=null; state.tab='shop';
-  state.pvzList={}; state.applications={}; state.orderIndex={};
-  state.selectedPvzId=null; state.pvzSearch='';
-  state.sellerProducts={}; state.reviews={}; state.supportMsgs={}; state.supportAccounts={};
-  Object.assign(loginState, { step:'phone', phone:null, mode:null, pinFirst:null, error:'' });
-  render();
-}
-
-async function addToCart(pid){
-  await db.ref('users/'+state.phone+'/cart/'+pid).transaction(q => (q||0) + 1);
-  toast('Добавлено в корзину', 'ok');
-}
-async function setCartQty(pid, qty){
-  if (qty <= 0) return db.ref('users/'+state.phone+'/cart/'+pid).remove();
-  await db.ref('users/'+state.phone+'/cart/'+pid).set(qty);
-}
-async function removeFromCart(pid){ await db.ref('users/'+state.phone+'/cart/'+pid).remove(); }
-function getCartItems(){
-  const cart = state.user.cart || {};
-  const items = [];
-  for (const [pid, qty] of Object.entries(cart)){
-    const p = PRODUCT_MAP[pid];
-    if (p && qty > 0) items.push({ ...p, qty });
-  }
-  return items;
-}
-function getCartTotal(items){ return items.reduce((s,i)=>s+i.price*i.qty, 0); }
-function getCartCount(){ return Object.values(state.user.cart||{}).reduce((s,q)=>s+(Number(q)||0), 0); }
-
-async function createOrder(pvzId){
-  const items = getCartItems();
-  if (!items.length) throw new Error('Корзина пуста');
-  const pvz = state.pvzList[pvzId];
-  if (!pvz) throw new Error('Выберите ПВЗ');
-  const total = getCartTotal(items);
-  const code6 = await generateCode6();
-  const boxCode = await generateBoxCode();
-  const cell = Math.floor(Math.random()*250) + 1;
-  const orderRef = db.ref('users/'+state.phone+'/orders').push();
-  const orderId = orderRef.key;
-
-  const units = [];
-  for (const it of items){
-    const baseQr = (PRODUCT_MAP[it.id] && PRODUCT_MAP[it.id].qr) || ('prod' + it.id);
-    for (let i = 0; i < it.qty; i++){
-      units.push({ qr: baseQr, productId: it.id, name: it.name });
-    }
-  }
-
-  const cleanItems = items.map(i => {
-    const o = { id: i.id, name: i.name, price: i.price, qty: i.qty };
-    if (i.emoji) o.emoji = i.emoji;
-    if (i.brand) o.brand = i.brand;
-    if (i.photo) o.photo = i.photo;
-    return o;
-  });
-
-  // ВАЖНО: Добавлен pvzCity!
-  const order = {
-    items: cleanItems,
-    total, pvzId, pvzAddress: pvz.address, pvzName: pvz.name, pvzCity: getPvzCity(pvz),
-    code6, boxCode, cell, status: 'transit', ts: Date.now(),
-    units,
-  };
-  const updates = {};
-  updates['users/'+state.phone+'/orders/'+orderId] = order;
-  updates['users/'+state.phone+'/cart'] = null;
-  updates['orderIndex/'+orderId] = {
-    phone: state.phone, code6, boxCode, status: 'transit',
-    pvzId, pvzName: pvz.name, pvzCity: getPvzCity(pvz),
-    cell, total, ts: Date.now(),
-  };
-  updates['codeIndex/'+code6] = { orderId, phone: state.phone, pvzId };
-  updates['boxIndex/'+boxCode] = { orderId, phone: state.phone, pvzId };
-  await db.ref().update(updates);
-  return { orderId, code6, boxCode };
 }
 
 async function submitPvzApplication(name, city, address, schedule){
@@ -650,21 +740,6 @@ async function deletePvz(pvzId){
   await db.ref().update(updates);
   toast('ПВЗ удалён', 'ok');
 }
-async function changeBoxCode(orderId){
-  const o = state.orderIndex[orderId];
-  if (!o) throw new Error('Заказ не найден');
-  if (o.status !== 'transit' && o.status !== 'pending') throw new Error('Нельзя менять QR принятого/выданного заказа');
-  const oldCode = o.boxCode;
-  if (!oldCode) throw new Error('У заказа нет box-кода');
-  const newCode = await generateBoxCode();
-  const updates = {};
-  updates['users/'+o.phone+'/orders/'+orderId+'/boxCode'] = newCode;
-  updates['orderIndex/'+orderId+'/boxCode'] = newCode;
-  updates['boxIndex/'+oldCode] = null;
-  updates['boxIndex/'+newCode] = { orderId, phone: o.phone, pvzId: o.pvzId };
-  await db.ref().update(updates);
-  toast('QR коробки обновлён', 'ok');
-}
 async function createSupportAccount(login, password, name){
   login = String(login||'').trim().toLowerCase();
   password = String(password||'').trim();
@@ -679,6 +754,34 @@ async function createSupportAccount(login, password, name){
 async function deleteSupportAccount(login){
   if (!confirm('Удалить аккаунт поддержки ' + login + '?')) return;
   await db.ref('supportAccounts/'+login).remove();
+  toast('Удалён', 'ok');
+}
+async function createCourierAccount(login, password, name){
+  login = String(login||'').trim().toLowerCase();
+  password = String(password||'').trim();
+  name = String(name||'').trim() || login;
+  if (!/^[a-z0-9_\-]{3,20}$/.test(login)) throw new Error('Логин: 3-20 символов a-z0-9_-');
+  if (password.length < 4) throw new Error('Пароль минимум 4 символа');
+  const snap = await db.ref('couriers/'+login).once('value');
+  if (snap.exists()) throw new Error('Такой логин уже занят');
+  await db.ref('couriers/'+login).set({ password, name, createdAt: Date.now() });
+  toast('Курьер создан: ' + login, 'ok');
+}
+async function deleteCourierAccount(login){
+  if (!confirm('Удалить курьера ' + login + '?')) return;
+  await db.ref('couriers/'+login).remove();
+  toast('Удалён', 'ok');
+}
+async function createSortingCenter(name) {
+  name = String(name||'').trim();
+  if (!name) throw new Error('Введите название СЦ');
+  const scId = 'sc' + Math.random().toString(36).slice(2, 8);
+  await db.ref('sortingCenters/'+scId).set({ name, createdAt: Date.now() });
+  toast('СЦ создан', 'ok');
+}
+async function deleteSortingCenter(scId){
+  if (!confirm('Удалить СЦ?')) return;
+  await db.ref('sortingCenters/'+scId).remove();
   toast('Удалён', 'ok');
 }
 
@@ -711,9 +814,7 @@ async function submitReview(productId, rating, text, photos){
   const name = (state.user.name || '').trim() || state.phone;
   const revRef = db.ref('reviews/'+productId).push();
   const review = {
-    phone: state.phone,
-    name,
-    rating: Number(rating),
+    phone: state.phone, name, rating: Number(rating),
     text: String(text||'').trim(),
     photos: Array.isArray(photos) ? photos.slice(0,3) : [],
     createdAt: Date.now(),
@@ -732,8 +833,7 @@ async function compressImage(file, maxW, quality){
         if (w > maxW){ h = h * maxW / w; w = maxW; }
         canvas.width = w; canvas.height = h;
         canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-        try { resolve(canvas.toDataURL('image/jpeg', quality)); }
-        catch(e){ reject(e); }
+        try { resolve(canvas.toDataURL('image/jpeg', quality)); } catch(e){ reject(e); }
       };
       img.onerror = reject;
       img.src = e.target.result;
@@ -750,11 +850,7 @@ async function sendSupportMessage(text){
   const msg = { from:'client', text, ts: Date.now(), name };
   const updates = {};
   updates['supportMessages/'+state.phone+'/'+msgRef.key] = msg;
-  updates['supportThreads/'+state.phone] = {
-    phone: state.phone, name,
-    lastMessage: text, lastTs: msg.ts,
-    status: 'open',
-  };
+  updates['supportThreads/'+state.phone] = { phone: state.phone, name, lastMessage: text, lastTs: msg.ts, status: 'open' };
   await db.ref().update(updates);
 }
 async function markSupportRead(){
@@ -860,23 +956,26 @@ function viewOrders(){
     const st = statusClass(o.status);
     const isReturned = o.status === 'returned';
     const isIssued = o.status === 'issued';
-    return `<div class="order">
+    const isUnpaid = o.paymentStatus === 'unpaid';
+    return `<div class="order" data-orderclick="${o.id}">
       <div class="order-head">
         <span class="muted small">${new Date(o.ts).toLocaleString('ru-RU')}</span>
-        <span class="badge ${st}">${statusLabel(o.status)}</span>
+        <div>
+          <span class="badge ${isUnpaid?'unpaid':'paid'}">${isUnpaid?'Не оплачен':'Оплачен'}</span>
+          <span class="badge ${st}">${statusLabel(o.status)}</span>
+        </div>
       </div>
       <div style="font-size:14px;margin-bottom:6px">${o.items.map(i=>`${i.emoji||''} ${esc(i.name)} ×${i.qty}`).join('<br>')}</div>
-      <div class="muted small" style="margin-bottom:10px">ПВЗ: ${esc(o.pvzName||'')} · ${esc(o.pvzAddress||'')}</div>
+      <div class="muted small" style="margin-bottom:10px">${o.deliveryType==='pvz'?'ПВЗ':'Курьер'}: ${esc(o.pvzName||'')} · ${esc(o.pvzAddress||'')}</div>
       ${isReturned && o.returnReason ? `<div class="reason-box">↩ Возврат: ${esc(o.returnReason)}</div>` : ''}
       <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px">
         <b>${fmt(o.total)}</b>
-        ${!isIssued && !isReturned
-          ? `<button class="btn small" data-showqr="${o.id}">QR и код</button>`
-          : `<span class="muted small">${isIssued ? 'Выдан ' + (o.issuedAt ? new Date(o.issuedAt).toLocaleDateString('ru-RU') : '') : 'Возвращён ' + (o.returnedAt ? new Date(o.returnedAt).toLocaleDateString('ru-RU') : '')}</span>`}
+        <div style="display:flex;gap:6px;">
+          ${isUnpaid && !isIssued && !isReturned ? `<button class="btn small warn" data-payorder="${o.id}">Оплатить</button>` : ''}
+          ${(o.status === 'ready' || o.status.startsWith('courier_')) ? `<button class="btn small" data-showqr="${o.id}">QR и код</button>` : ''}
+          ${o.status === 'ready' ? `<button class="btn small err" data-showretqr="${o.id}">QR Возврата</button>` : ''}
+        </div>
       </div>
-      ${isIssued ? `<div style="margin-top:10px">
-        ${o.items.map(i=>`<button class="btn small ghost" data-reviewprod="${i.id}" style="margin:3px 4px 0 0">★ Отзыв: ${esc(i.name)}</button>`).join('')}
-      </div>` : ''}
     </div>`;
   }).join('');
 }
@@ -904,6 +1003,7 @@ function viewProfile(isAdmin){
   const pa = state.user.pvzApp;
   const canApply = !pa || pa.status === 'rejected' || pa.status === 'deleted';
   const myName = state.user.name || '';
+  const wallet = state.user.wallet || 0;
 
   let pvzBlock = '';
   if (pa && pa.status === 'pending'){
@@ -929,6 +1029,14 @@ function viewProfile(isAdmin){
   }
 
   return `<h2>Профиль</h2>
+    <div class="card">
+      <h3>Кошелек</h3>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <span class="muted">Баланс</span>
+        <b style="font-size:24px;color:#a5b8ff">${fmt(wallet)}</b>
+      </div>
+      <button class="btn ok" id="btnTopupOpen">Пополнить кошелек</button>
+    </div>
     <div class="card">
       <h3>Имя профиля</h3>
       <p class="muted small" style="margin:0 0 8px">Это имя видят продавцы и поддержка</p>
@@ -957,10 +1065,10 @@ function viewAdmin(){
   const others = apps.filter(([,a])=>a.status!=='pending');
   const pvzList = Object.entries(state.pvzList);
   const allOrders = Object.entries(state.orderIndex||{}).map(([id,v])=>({id,...v})).sort((a,b)=>b.ts-a.ts);
-  const activeOrders = allOrders.filter(o => o.status === 'transit' || o.status === 'pending');
-  const returnedOrders = allOrders.filter(o => o.status === 'returned');
-  const doneOrders = allOrders.filter(o => o.status === 'ready' || o.status === 'issued');
+  const activeOrders = allOrders.filter(o => o.status === 'transit' || o.status === 'pending' || o.status.startsWith('courier') || o.status === 'sc_pending');
   const supAccs = Object.entries(state.supportAccounts || {});
+  const couriers = Object.entries(state.couriers || {});
+  const scs = Object.entries(state.sortingCenters || {});
 
   return `<h2>Админ-панель</h2>
     <div class="card">
@@ -996,44 +1104,49 @@ function viewAdmin(){
     </div>
 
     <div class="card">
-      <h3>Коробки в пути (${activeOrders.length})</h3>
+      <h3>Курьеры (${couriers.length})</h3>
+      <input id="courLogin" class="input" placeholder="Логин (a-z, 3-20)" autocomplete="off"/>
+      <input id="courPass" class="input" placeholder="Пароль" autocomplete="new-password"/>
+      <input id="courName" class="input" placeholder="Имя / ФИО" autocomplete="off"/>
+      <button class="btn" id="btnCreateCourier">Создать курьера</button>
+      <div style="margin-top:10px">
+        ${couriers.length ? couriers.map(([l,c])=>`
+          <div class="app-row">
+            <div class="app-head"><b>${esc(l)}</b><span class="muted small">${esc(c.name||'')}</span></div>
+            <div class="contact">Пароль: <b style="font-family:monospace;color:#a5b8ff">${esc(c.password||'')}</b></div>
+            <button class="btn err small" data-delcour="${esc(l)}">Удалить</button>
+          </div>`).join('') : '<div class="muted small">Нет курьеров</div>'}
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Сортировочные центры (${scs.length})</h3>
+      <input id="scName" class="input" placeholder="Название СЦ" autocomplete="off"/>
+      <button class="btn" id="btnCreateSC">Создать СЦ</button>
+      <div style="margin-top:10px">
+        ${scs.length ? scs.map(([id,sc])=>`
+          <div class="app-row">
+            <div class="app-head"><b>${esc(sc.name)}</b></div>
+            <div class="row-btns" style="margin-top:8px">
+              <button class="btn small blue" data-scqr="${id}">Показать QR для входа</button>
+              <button class="btn err small" data-delsc="${id}">Удалить</button>
+            </div>
+          </div>`).join('') : '<div class="muted small">Нет СЦ</div>'}
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Активные заказы (${activeOrders.length})</h3>
       ${activeOrders.length ? activeOrders.map(o=>`
         <div class="app-row">
           <div class="app-head"><b>Код ${esc(o.code6||'')}</b><span class="badge ${statusClass(o.status)}">${statusLabel(o.status)}</span></div>
           <div class="address">🏙 ${esc(o.pvzCity||'')} · ${esc(o.pvzName||'')}</div>
           <div class="contact">👤 ${esc(o.phone)} · 💰 ${fmt(o.total)} · 📦 ${o.cell||'—'}</div>
-          <div class="ord-meta">Box: ${esc(o.boxCode||'—')}</div>
           <div class="row-btns" style="margin-top:8px">
-            <button class="btn small" data-boxqr="${o.id}">QR коробки</button>
-            <button class="btn small ghost" data-changeboxqr="${o.id}">Изменить QR</button>
+            ${o.boxCode ? `<button class="btn small" data-boxqr="${o.id}">QR коробки</button>` : ''}
           </div>
-        </div>`).join('') : '<div class="muted small">Нет коробок в пути</div>'}
-      ${doneOrders.length ? `<div class="muted small" style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border)">✅ Принято/выдано: ${doneOrders.length}</div>` : ''}
+        </div>`).join('') : '<div class="muted small">Нет заказов</div>'}
     </div>
-
-    ${returnedOrders.length ? `<div class="card">
-      <h3>Возвраты (${returnedOrders.length})</h3>
-      ${returnedOrders.slice(0,20).map(o=>`
-        <div class="app-row">
-          <div class="app-head"><b>Код ${esc(o.code6||'')}</b><span class="badge returned">Возвращён</span></div>
-          <div class="address">🏙 ${esc(o.pvzCity||'')} · ${esc(o.pvzName||'')}</div>
-          <div class="contact">👤 ${esc(o.phone)} · 💰 ${fmt(o.total)}</div>
-          ${o.returnReason?`<div class="reason-box">↩ ${esc(o.returnReason)}</div>`:''}
-        </div>`).join('')}
-    </div>` : ''}
-
-    ${others.length ? `<div class="card">
-      <h3>История заявок ПВЗ</h3>
-      ${others.map(([id,a])=>`
-        <div class="app-row">
-          <div class="app-head"><b>${esc(a.name)}</b><span class="badge ${a.status}">${a.status==='approved'?'Одобрена':'Отклонена'}</span></div>
-          <div class="schedule">🏙 ${esc(a.city||'—')} · 📍 ${esc(a.address)}</div>
-          ${a.status==='approved' && a.login ? `<div class="creds-box">
-            <div class="row"><span>Логин:</span><b>${esc(a.login)}</b></div>
-            <div class="row"><span>Пароль:</span><b>${esc(a.password||'')}</b></div>
-          </div>` : ''}
-        </div>`).join('')}
-    </div>` : ''}
 
     <div class="card">
       <h3>Активные ПВЗ (${pvzList.length})</h3>
@@ -1055,7 +1168,11 @@ function bindView(){
     $('applyName').value=''; $('applyCity').value=''; $('applyAddress').value=''; $('applySchedule').value='';
     openModal('applyPvzModal');
   };
-  if ($('btnCheckout')) $('btnCheckout').onclick = openPvzSelectModal;
+  if ($('btnCheckout')) $('btnCheckout').onclick = openCheckoutModal;
+  if ($('btnTopupOpen')) $('btnTopupOpen').onclick = () => {
+    $('walletTopupAmount').value = '';
+    openModal('walletModal');
+  };
   if ($('btnSaveName')) $('btnSaveName').onclick = async () => {
     const name = $('profileName').value.trim();
     await db.ref('users/'+state.phone+'/name').set(name);
@@ -1077,6 +1194,18 @@ function bindView(){
       $('supLogin').value=''; $('supPass').value=''; $('supName').value='';
     } catch(e){ toast(e.message,'err'); }
   };
+  if ($('btnCreateCourier')) $('btnCreateCourier').onclick = async () => {
+    try {
+      await createCourierAccount($('courLogin').value, $('courPass').value, $('courName').value);
+      $('courLogin').value=''; $('courPass').value=''; $('courName').value='';
+    } catch(e){ toast(e.message,'err'); }
+  };
+  if ($('btnCreateSC')) $('btnCreateSC').onclick = async () => {
+    try {
+      await createSortingCenter($('scName').value);
+      $('scName').value = '';
+    } catch(e){ toast(e.message,'err'); }
+  };
   const chatMsgs = $('chatMsgs');
   if (chatMsgs) chatMsgs.scrollTop = chatMsgs.scrollHeight;
 }
@@ -1087,25 +1216,20 @@ function filterPvzEntries(){
   if (!q) return entries;
   return entries.filter(([id,p]) => getPvzCity(p).toLowerCase().startsWith(q));
 }
+
 function renderPvzList(){
   const entries = filterPvzEntries();
   const box = document.getElementById('pvzListBox');
-  if (!Object.keys(state.pvzList).length){
-    box.innerHTML = '<div class="empty">Пока нет доступных ПВЗ</div>';
-    document.getElementById('btnConfirmOrder').disabled = true; return;
-  }
   if (!entries.length){
-    box.innerHTML = '<div class="empty">ПВЗ в этом городе не найдены</div>';
-    document.getElementById('btnConfirmOrder').disabled = !state.selectedPvzId; return;
+    box.innerHTML = '<div class="muted small" style="padding:10px">ПВЗ не найдены</div>'; return;
   }
   box.innerHTML = entries.map(([id,p])=>`
     <div class="pvz-option ${state.selectedPvzId===id?'selected':''}" data-pvzpick="${id}">
       <div class="pvz-radio"></div>
       <div class="pvz-info">
         <div class="pvz-name">${esc(p.name)}</div>
-        ${getPvzCity(p)?`<div class="pvz-city">🏙 ${esc(getPvzCity(p))}</div>`:''}
+        <div class="pvz-city">🏙 ${esc(getPvzCity(p))}</div>
         <div class="pvz-address">📍 ${esc(p.address)}</div>
-        ${p.schedule?`<div class="pvz-schedule">🕒 ${esc(p.schedule)}</div>`:''}
       </div>
     </div>`).join('');
   box.querySelectorAll('[data-pvzpick]').forEach(el => {
@@ -1113,39 +1237,80 @@ function renderPvzList(){
       state.selectedPvzId = el.dataset.pvzpick;
       box.querySelectorAll('.pvz-option').forEach(x=>x.classList.remove('selected'));
       el.classList.add('selected');
-      document.getElementById('btnConfirmOrder').disabled = false;
     };
   });
-  document.getElementById('btnConfirmOrder').disabled = !state.selectedPvzId;
 }
-function openPvzSelectModal(){
+
+function openCheckoutModal(){
   if (!getCartItems().length){ toast('Корзина пуста','err'); return; }
   state.pvzSearch = '';
   document.getElementById('pvzSearch').value = '';
+  document.getElementById('courierAddressInput').value = '';
+  
+  document.getElementById('walletBalanceLabel').textContent = 'Баланс: ' + fmt(state.user.wallet || 0);
+  
+  const delRadios = document.querySelectorAll('input[name="delType"]');
+  delRadios.forEach(r => {
+    r.onchange = () => {
+      document.getElementById('delTypePvz').classList.toggle('selected', r.value === 'pvz' && r.checked);
+      document.getElementById('delTypeCourier').classList.toggle('selected', r.value === 'courier' && r.checked);
+      document.getElementById('pvzSelectBox').style.display = r.value === 'pvz' ? 'block' : 'none';
+      document.getElementById('courierAddressBox').style.display = r.value === 'courier' ? 'block' : 'none';
+    };
+  });
+
+  const payRadios = document.querySelectorAll('input[name="payType"]');
+  payRadios.forEach(r => {
+    r.onchange = () => {
+      document.getElementById('payTypeWallet').classList.toggle('selected', r.value === 'wallet' && r.checked);
+      document.getElementById('payTypeCash').classList.toggle('selected', r.value === 'cash' && r.checked);
+    };
+  });
+
   renderPvzList();
   document.getElementById('pvzSearch').oninput = (e) => {
     state.pvzSearch = e.target.value; renderPvzList();
   };
+
   document.getElementById('btnConfirmOrder').onclick = async () => {
-    if (!state.selectedPvzId) return;
+    const delType = document.querySelector('input[name="delType"]:checked').value;
+    const payType = document.querySelector('input[name="payType"]:checked').value;
+    let address = '';
+    
+    if (delType === 'pvz' && !state.selectedPvzId) { toast('Выберите ПВЗ', 'err'); return; }
+    if (delType === 'courier') {
+      address = document.getElementById('courierAddressInput').value.trim();
+      if (!address) { toast('Введите адрес доставки', 'err'); return; }
+    }
+    
     const btn = document.getElementById('btnConfirmOrder');
     btn.disabled = true; btn.textContent = 'Оформляем…';
     try {
-      const { orderId } = await createOrder(state.selectedPvzId);
-      closeModal('pvzSelectModal');
+      const { orderId } = await createOrder(state.selectedPvzId, delType, address, payType);
+      closeModal('checkoutModal');
       state.selectedPvzId = null;
-      toast('Заказ создан. Ожидайте доставки в ПВЗ', 'ok');
+      toast('Заказ создан', 'ok');
       state.tab = 'orders'; render();
-      setTimeout(() => showOrderQr(orderId), 400);
+      setTimeout(() => showOrderQr(orderId, false), 400);
     } catch(err){ toast(err.message,'err'); }
     btn.disabled = false; btn.textContent = 'Подтвердить заказ';
   };
-  openModal('pvzSelectModal');
+  openModal('checkoutModal');
 }
-function showOrderQr(orderId){
+
+function showOrderQr(orderId, isReturn){
   const o = (state.user.orders||{})[orderId];
   if (!o) return;
-  new QRious({ element: document.getElementById('orderQrCanvas'), value: 'mkt:'+orderId, size: 240, background: '#ffffff', foreground: '#0b1020', level: 'M' });
+  
+  let val = 'mkt:'+orderId;
+  if (isReturn) {
+    val = 'ret:' + orderId + ':' + getTodayStr();
+    document.getElementById('orderQrDesc').textContent = 'Покажите этот QR для возврата товара (обновляется каждый день)';
+  } else {
+    document.getElementById('orderQrDesc').textContent = 'Покажите QR для получения заказа';
+  }
+
+  new QRious({ element: document.getElementById('orderQrCanvas'), value: val, size: 240, background: '#ffffff', foreground: '#0b1020', level: 'M' });
   document.getElementById('orderCodeBox').textContent = o.code6;
   document.getElementById('orderQrPvz').textContent = o.pvzName || o.pvzAddress || '—';
   const stEl = document.getElementById('orderQrStatus');
@@ -1158,6 +1323,11 @@ function showBoxQr(orderId){
   new QRious({ element: document.getElementById('boxQrCanvas'), value: o.boxCode, size: 240, background: '#ffffff', foreground: '#0b1020', level: 'M' });
   document.getElementById('boxQrCode').textContent = o.boxCode;
   openModal('boxQrModal');
+}
+function showScQr(scId) {
+  new QRious({ element: document.getElementById('scQrCanvas'), value: 'sc:'+scId, size: 240, background: '#ffffff', foreground: '#0b1020', level: 'M' });
+  document.getElementById('scQrCode').textContent = 'sc:'+scId;
+  openModal('scQrModal');
 }
 
 async function openProductModal(productId){
@@ -1187,9 +1357,7 @@ async function openProductModal(productId){
   const revList = Object.entries(reviews).map(([id,r])=>({id,...r})).sort((a,b)=>b.createdAt-a.createdAt);
   const avg = avgRating(reviews);
   const cnt = revList.length;
-  document.getElementById('revAvg').innerHTML = cnt
-    ? `· ${starsHtml(avg)} <b>${avg.toFixed(1)}</b> (${cnt})`
-    : '';
+  document.getElementById('revAvg').innerHTML = cnt ? `· ${starsHtml(avg)} <b>${avg.toFixed(1)}</b> (${cnt})` : '';
   const canWrite = canReview(productId);
   box.innerHTML = `
     ${canWrite ? `<button class="btn ghost small" id="btnWriteReview" style="width:100%;margin-bottom:10px">★ Оставить отзыв</button>` : ''}
@@ -1286,6 +1454,21 @@ function openReviewModal(productId){
   openModal('reviewModal');
 }
 
+document.getElementById('btnTopupWallet').onclick = async () => {
+  const val = Number(document.getElementById('walletTopupAmount').value);
+  if (!val || val <= 0) { toast('Введите корректную сумму', 'err'); return; }
+  const btn = document.getElementById('btnTopupWallet');
+  btn.disabled = true; btn.textContent = 'Пополняем…';
+  try {
+    await db.ref('users/' + state.phone + '/wallet').transaction(w => (w || 0) + val);
+    toast('Кошелек пополнен на ' + fmt(val), 'ok');
+    closeModal('walletModal');
+  } catch(e) {
+    toast('Ошибка пополнения', 'err');
+  }
+  btn.disabled = false; btn.textContent = 'Пополнить';
+};
+
 document.addEventListener('click', async (e) => {
   const closeBtn = e.target.closest('[data-close]');
   if (closeBtn){ closeModal(closeBtn.dataset.close); return; }
@@ -1310,8 +1493,17 @@ document.addEventListener('click', async (e) => {
   const rm = e.target.closest('[data-removecart]');
   if (rm){ await removeFromCart(rm.dataset.removecart); return; }
 
+  const payBtn = e.target.closest('[data-payorder]');
+  if (payBtn) {
+    try { await payOrder(payBtn.dataset.payorder); } catch(err){ toast(err.message, 'err'); }
+    return;
+  }
+
   const showQr = e.target.closest('[data-showqr]');
-  if (showQr){ showOrderQr(showQr.dataset.showqr); return; }
+  if (showQr){ showOrderQr(showQr.dataset.showqr, false); return; }
+
+  const showRetQr = e.target.closest('[data-showretqr]');
+  if (showRetQr){ showOrderQr(showRetQr.dataset.showretqr, true); return; }
 
   const revBtn = e.target.closest('[data-reviewprod]');
   if (revBtn){ openReviewModal(revBtn.dataset.reviewprod); return; }
@@ -1331,8 +1523,8 @@ document.addEventListener('click', async (e) => {
   const boxQr = e.target.closest('[data-boxqr]');
   if (boxQr){ showBoxQr(boxQr.dataset.boxqr); return; }
 
-  const changeBoxQr = e.target.closest('[data-changeboxqr]');
-  if (changeBoxQr){ try { await changeBoxCode(changeBoxQr.dataset.changeboxqr); } catch(err){ toast(err.message,'err'); } return; }
+  const scQrBtn = e.target.closest('[data-scqr]');
+  if (scQrBtn){ showScQr(scQrBtn.dataset.scqr); return; }
 
   const approve = e.target.closest('[data-approve]');
   if (approve){ try { await approvePvz(approve.dataset.approve); } catch(err){ toast(err.message,'err'); } return; }
@@ -1345,6 +1537,12 @@ document.addEventListener('click', async (e) => {
 
   const delSup = e.target.closest('[data-delsup]');
   if (delSup){ try { await deleteSupportAccount(delSup.dataset.delsup); } catch(err){ toast(err.message,'err'); } return; }
+
+  const delCour = e.target.closest('[data-delcour]');
+  if (delCour){ try { await deleteCourierAccount(delCour.dataset.delcour); } catch(err){ toast(err.message,'err'); } return; }
+
+  const delSc = e.target.closest('[data-delsc]');
+  if (delSc){ try { await deleteSortingCenter(delSc.dataset.delsc); } catch(err){ toast(err.message,'err'); } return; }
 });
 
 document.getElementById('btnApplyPvz').onclick = async () => {
