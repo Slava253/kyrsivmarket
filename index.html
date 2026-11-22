@@ -1004,6 +1004,8 @@ function viewProfile(isAdmin){
   const canApply = !pa || pa.status === 'rejected' || pa.status === 'deleted';
   const myName = state.user.name || '';
   const wallet = state.user.wallet || 0;
+  const orders = Object.entries(state.user.orders || {}).map(([id,v])=>({id,...v})).sort((a,b)=>b.ts-a.ts);
+  const returnableOrders = orders.filter(o => o.status === 'issued' || o.status === 'ready');
 
   let pvzBlock = '';
   if (pa && pa.status === 'pending'){
@@ -1037,6 +1039,7 @@ function viewProfile(isAdmin){
       </div>
       <button class="btn ok" id="btnTopupOpen">Пополнить кошелек</button>
     </div>
+    
     <div class="card">
       <h3>Имя профиля</h3>
       <p class="muted small" style="margin:0 0 8px">Это имя видят продавцы и поддержка</p>
@@ -1045,6 +1048,22 @@ function viewProfile(isAdmin){
         <button class="btn small" id="btnSaveName" style="margin-left:8px">Сохранить</button>
       </div>
     </div>
+
+    ${returnableOrders.length ? `
+    <div class="card">
+      <h3>Возврат товаров</h3>
+      <p class="muted small" style="margin:0 0 10px">Вы можете оформить возврат для готовых или полученных заказов</p>
+      ${returnableOrders.map(o => `
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:10px;background:var(--card2);border-radius:10px;margin-bottom:6px">
+          <div>
+            <div style="font-size:13px;font-weight:600">Заказ от ${new Date(o.ts).toLocaleDateString('ru-RU')}</div>
+            <div class="muted small">${fmt(o.total)}</div>
+          </div>
+          <button class="btn small err" data-showretqr="${o.id}">QR Возврата</button>
+        </div>
+      `).join('')}
+    </div>` : ''}
+
     <div class="card">
       <div style="display:flex;justify-content:space-between;margin-bottom:8px"><span class="muted">Телефон</span><b>${esc(state.phone)}</b></div>
       <div style="display:flex;justify-content:space-between"><span class="muted">Роль</span>
