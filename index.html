@@ -339,7 +339,7 @@ const state = {
   phone:null, user:null, tab:'shop',
   pvzList:{}, applications:{}, orderIndex:{},
   selectedPvzId:null, pvzSearch:'',
-  sellerProducts:{}, reviews:{}, // productId -> {reviewId: rev}
+  sellerProducts:{}, reviews:{},
   supportMsgs:{}, supportAccounts:{}, supportUnread:0,
   activeProductId:null, activeReviewProduct:null,
   reviewPhotos:[],
@@ -451,7 +451,6 @@ function subscribeUser(phone){
   pvzRef.on('value', pvzCb);
   unsubPvz = () => pvzRef.off('value', pvzCb);
 
-  // Товары продавцов
   const prodRef = db.ref('sellerProducts');
   const prodCb = snap => {
     state.sellerProducts = snap.val() || {};
@@ -475,7 +474,6 @@ function subscribeUser(phone){
   prodRef.on('value', prodCb);
   unsubProducts = () => prodRef.off('value', prodCb);
 
-  // Чат поддержки (сообщения)
   const suppRef = db.ref('supportMessages/'+phone);
   const suppCb = snap => {
     state.supportMsgs = snap.val() || {};
@@ -560,7 +558,6 @@ async function createOrder(pvzId){
   const orderRef = db.ref('users/'+state.phone+'/orders').push();
   const orderId = orderRef.key;
 
-  // Уникальные QR-коды для каждого физического товара в коробке
   const units = [];
   for (const it of items){
     const baseQr = (PRODUCT_MAP[it.id] && PRODUCT_MAP[it.id].qr) || ('prod' + it.id);
@@ -569,8 +566,16 @@ async function createOrder(pvzId){
     }
   }
 
+  const cleanItems = items.map(i => {
+    const o = { id: i.id, name: i.name, price: i.price, qty: i.qty };
+    if (i.emoji) o.emoji = i.emoji;
+    if (i.brand) o.brand = i.brand;
+    if (i.photo) o.photo = i.photo;
+    return o;
+  });
+
   const order = {
-    items: items.map(i=>({ id:i.id, name:i.name, price:i.price, qty:i.qty, emoji:i.emoji, brand:i.brand||'', photo:i.photo||'' })),
+    items: cleanItems,
     total, pvzId, pvzAddress: pvz.address, pvzName: pvz.name,
     code6, boxCode, cell, status: 'transit', ts: Date.now(),
     units,
@@ -678,7 +683,6 @@ async function deleteSupportAccount(login){
   toast('Удалён', 'ok');
 }
 
-/* ========== ОТЗЫВЫ ========== */
 function canReview(productId){
   const orders = state.user.orders || {};
   for (const o of Object.values(orders)){
@@ -739,8 +743,6 @@ async function compressImage(file, maxW, quality){
     reader.readAsDataURL(file);
   });
 }
-
-/* ========== ПОДДЕРЖКА ========== */
 async function sendSupportMessage(text){
   text = String(text||'').trim();
   if (!text) return;
@@ -769,7 +771,6 @@ async function markSupportRead(){
   if (changed) await db.ref().update(updates);
 }
 
-/* ========== RENDER ========== */
 function productImgHtml(p, big){
   const sz = big ? 180 : 56;
   if (p && p.photo){
@@ -1007,367 +1008,4 @@ function viewAdmin(){
             <button class="btn small" data-boxqr="${o.id}">QR коробки</button>
             <button class="btn small ghost" data-changeboxqr="${o.id}">Изменить QR</button>
           </div>
-        </div>`).join('') : '<div class="muted small">Нет коробок в пути</div>'}
-      ${doneOrders.length ? `<div class="muted small" style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border)">✅ Принято/выдано: ${doneOrders.length}</div>` : ''}
-    </div>
-
-    ${returnedOrders.length ? `<div class="card">
-      <h3>Возвраты (${returnedOrders.length})</h3>
-      ${returnedOrders.slice(0,20).map(o=>`
-        <div class="app-row">
-          <div class="app-head"><b>Код ${esc(o.code6||'')}</b><span class="badge returned">Возвращён</span></div>
-          <div class="address">🏙 ${esc(o.pvzCity||'')} · ${esc(o.pvzName||'')}</div>
-          <div class="contact">👤 ${esc(o.phone)} · 💰 ${fmt(o.total)}</div>
-          ${o.returnReason?`<div class="reason-box">↩ ${esc(o.returnReason)}</div>`:''}
-        </div>`).join('')}
-    </div>` : ''}
-
-    ${others.length ? `<div class="card">
-      <h3>История заявок ПВЗ</h3>
-      ${others.map(([id,a])=>`
-        <div class="app-row">
-          <div class="app-head"><b>${esc(a.name)}</b><span class="badge ${a.status}">${a.status==='approved'?'Одобрена':'Отклонена'}</span></div>
-          <div class="schedule">🏙 ${esc(a.city||'—')} · 📍 ${esc(a.address)}</div>
-          ${a.status==='approved' && a.login ? `<div class="creds-box">
-            <div class="row"><span>Логин:</span><b>${esc(a.login)}</b></div>
-            <div class="row"><span>Пароль:</span><b>${esc(a.password||'')}</b></div>
-          </div>` : ''}
-        </div>`).join('')}
-    </div>` : ''}
-
-    <div class="card">
-      <h3>Активные ПВЗ (${pvzList.length})</h3>
-      ${pvzList.length ? pvzList.map(([id,p])=>`
-        <div class="app-row">
-          <div class="app-head"><b>${esc(p.name)}</b></div>
-          <div class="schedule">🏙 ${esc(getPvzCity(p))}</div>
-          <div class="address">📍 ${esc(p.address)}</div>
-          <div class="contact">📞 ${esc(p.ownerPhone||'')} · 🔑 ${esc(p.login||'—')}</div>
-          <button class="btn err small" data-delpvz="${id}">Удалить ПВЗ</button>
-        </div>`).join('') : '<div class="muted small">ПВЗ пока нет</div>'}
-    </div>`;
-}
-
-function bindView(){
-  const $ = id => document.getElementById(id);
-  if ($('btnLogout')) $('btnLogout').onclick = logout;
-  if ($('btnOpenApply')) $('btnOpenApply').onclick = () => {
-    $('applyName').value=''; $('applyCity').value=''; $('applyAddress').value=''; $('applySchedule').value='';
-    openModal('applyPvzModal');
-  };
-  if ($('btnCheckout')) $('btnCheckout').onclick = openPvzSelectModal;
-  if ($('btnSaveName')) $('btnSaveName').onclick = async () => {
-    const name = $('profileName').value.trim();
-    await db.ref('users/'+state.phone+'/name').set(name);
-    toast('Имя сохранено', 'ok');
-  };
-  if ($('btnSendSupport')) $('btnSendSupport').onclick = async () => {
-    const inp = $('supportInput');
-    const v = inp.value;
-    if (!v.trim()) return;
-    inp.value = '';
-    try { await sendSupportMessage(v); } catch(e){ toast(e.message,'err'); }
-  };
-  if ($('supportInput')) $('supportInput').addEventListener('keydown', e => {
-    if (e.key === 'Enter') $('btnSendSupport').click();
-  });
-  if ($('btnCreateSup')) $('btnCreateSup').onclick = async () => {
-    try {
-      await createSupportAccount($('supLogin').value, $('supPass').value, $('supName').value);
-      $('supLogin').value=''; $('supPass').value=''; $('supName').value='';
-    } catch(e){ toast(e.message,'err'); }
-  };
-  const chatMsgs = $('chatMsgs');
-  if (chatMsgs) chatMsgs.scrollTop = chatMsgs.scrollHeight;
-}
-
-function filterPvzEntries(){
-  const q = (state.pvzSearch||'').trim().toLowerCase();
-  const entries = Object.entries(state.pvzList);
-  if (!q) return entries;
-  return entries.filter(([id,p]) => getPvzCity(p).toLowerCase().startsWith(q));
-}
-function renderPvzList(){
-  const entries = filterPvzEntries();
-  const box = document.getElementById('pvzListBox');
-  if (!Object.keys(state.pvzList).length){
-    box.innerHTML = '<div class="empty">Пока нет доступных ПВЗ</div>';
-    document.getElementById('btnConfirmOrder').disabled = true; return;
-  }
-  if (!entries.length){
-    box.innerHTML = '<div class="empty">ПВЗ в этом городе не найдены</div>';
-    document.getElementById('btnConfirmOrder').disabled = !state.selectedPvzId; return;
-  }
-  box.innerHTML = entries.map(([id,p])=>`
-    <div class="pvz-option ${state.selectedPvzId===id?'selected':''}" data-pvzpick="${id}">
-      <div class="pvz-radio"></div>
-      <div class="pvz-info">
-        <div class="pvz-name">${esc(p.name)}</div>
-        ${getPvzCity(p)?`<div class="pvz-city">🏙 ${esc(getPvzCity(p))}</div>`:''}
-        <div class="pvz-address">📍 ${esc(p.address)}</div>
-        ${p.schedule?`<div class="pvz-schedule">🕒 ${esc(p.schedule)}</div>`:''}
-      </div>
-    </div>`).join('');
-  box.querySelectorAll('[data-pvzpick]').forEach(el => {
-    el.onclick = () => {
-      state.selectedPvzId = el.dataset.pvzpick;
-      box.querySelectorAll('.pvz-option').forEach(x=>x.classList.remove('selected'));
-      el.classList.add('selected');
-      document.getElementById('btnConfirmOrder').disabled = false;
-    };
-  });
-  document.getElementById('btnConfirmOrder').disabled = !state.selectedPvzId;
-}
-function openPvzSelectModal(){
-  if (!getCartItems().length){ toast('Корзина пуста','err'); return; }
-  state.pvzSearch = '';
-  document.getElementById('pvzSearch').value = '';
-  renderPvzList();
-  document.getElementById('pvzSearch').oninput = (e) => {
-    state.pvzSearch = e.target.value; renderPvzList();
-  };
-  document.getElementById('btnConfirmOrder').onclick = async () => {
-    if (!state.selectedPvzId) return;
-    const btn = document.getElementById('btnConfirmOrder');
-    btn.disabled = true; btn.textContent = 'Оформляем…';
-    try {
-      const { orderId } = await createOrder(state.selectedPvzId);
-      closeModal('pvzSelectModal');
-      state.selectedPvzId = null;
-      toast('Заказ создан. Ожидайте доставки в ПВЗ', 'ok');
-      state.tab = 'orders'; render();
-      setTimeout(() => showOrderQr(orderId), 400);
-    } catch(err){ toast(err.message,'err'); }
-    btn.disabled = false; btn.textContent = 'Подтвердить заказ';
-  };
-  openModal('pvzSelectModal');
-}
-function showOrderQr(orderId){
-  const o = (state.user.orders||{})[orderId];
-  if (!o) return;
-  new QRious({ element: document.getElementById('orderQrCanvas'), value: 'mkt:'+orderId, size: 240, background: '#ffffff', foreground: '#0b1020', level: 'M' });
-  document.getElementById('orderCodeBox').textContent = o.code6;
-  document.getElementById('orderQrPvz').textContent = o.pvzName || o.pvzAddress || '—';
-  const stEl = document.getElementById('orderQrStatus');
-  stEl.innerHTML = `<span class="badge ${statusClass(o.status)}">${statusLabel(o.status)}</span>`;
-  openModal('orderQrModal');
-}
-function showBoxQr(orderId){
-  const o = state.orderIndex[orderId];
-  if (!o || !o.boxCode){ toast('Нет box-кода','err'); return; }
-  new QRious({ element: document.getElementById('boxQrCanvas'), value: o.boxCode, size: 240, background: '#ffffff', foreground: '#0b1020', level: 'M' });
-  document.getElementById('boxQrCode').textContent = o.boxCode;
-  openModal('boxQrModal');
-}
-
-/* ========== PRODUCT DETAIL + REVIEWS ========== */
-async function openProductModal(productId){
-  const p = PRODUCT_MAP[productId];
-  if (!p) return;
-  state.activeProductId = productId;
-  const body = document.getElementById('productModalBody');
-  body.innerHTML = `
-    <div class="modal-head"><b>${esc(p.name)}</b><button class="close-btn" data-close="productModal">✕</button></div>
-    <div style="text-align:center;padding:14px;background:#0f1530;border-radius:14px;margin-bottom:12px">
-      ${productImgHtml(p, true)}
-    </div>
-    ${p.brand?`<div class="muted small" style="text-align:center;margin-bottom:4px">Бренд: <b style="color:#a5b8ff">${esc(p.brand)}</b></div>`:''}
-    <div style="font-size:24px;font-weight:800;text-align:center;color:#a5b8ff;margin-bottom:8px">${fmt(p.price)}</div>
-    ${p.description?`<div class="muted small" style="margin-bottom:12px;line-height:1.5">${esc(p.description)}</div>`:''}
-    <button class="btn" id="btnModalAdd">В корзину</button>
-    <h3 style="margin-top:18px">Отзывы <span id="revAvg" class="muted small"></span></h3>
-    <div id="productReviewsBox"><div class="muted small">Загрузка…</div></div>
-  `;
-  document.getElementById('btnModalAdd').onclick = async () => {
-    await addToCart(productId);
-  };
-  openModal('productModal');
-
-  const reviews = await loadReviews(productId);
-  const box = document.getElementById('productReviewsBox');
-  const revList = Object.entries(reviews).map(([id,r])=>({id,...r})).sort((a,b)=>b.createdAt-a.createdAt);
-  const avg = avgRating(reviews);
-  const cnt = revList.length;
-  document.getElementById('revAvg').innerHTML = cnt
-    ? `· ${starsHtml(avg)} <b>${avg.toFixed(1)}</b> (${cnt})`
-    : '';
-  const canWrite = canReview(productId);
-  box.innerHTML = `
-    ${canWrite ? `<button class="btn ghost small" id="btnWriteReview" style="width:100%;margin-bottom:10px">★ Оставить отзыв</button>` : ''}
-    ${revList.length ? revList.map(r=>`
-      <div class="review">
-        <div class="review-head">
-          <div>
-            <div class="review-author">${esc(r.name||r.phone||'Клиент')}</div>
-            <div>${starsHtml(r.rating)}</div>
-          </div>
-          <div class="review-date">${new Date(r.createdAt).toLocaleDateString('ru-RU')}</div>
-        </div>
-        ${r.text?`<div class="review-text">${esc(r.text)}</div>`:''}
-        ${r.photos && r.photos.length ? `<div class="review-photos">
-          ${r.photos.map(src=>`<img src="${esc(src)}" data-viewphoto="${esc(src)}" alt=""/>`).join('')}
-        </div>`:''}
-        ${r.sellerReply?`<div class="seller-reply"><b>Ответ продавца:</b> ${esc(r.sellerReply.text)}</div>`:''}
-      </div>`).join('') : '<div class="muted small" style="padding:12px;text-align:center">Пока нет отзывов</div>'}
-  `;
-  if (canWrite){
-    document.getElementById('btnWriteReview').onclick = () => openReviewModal(productId);
-  }
-}
-
-function openReviewModal(productId){
-  if (!canReview(productId)){ toast('Оставить отзыв можно только после покупки','err'); return; }
-  state.activeReviewProduct = productId;
-  state.reviewPhotos = [];
-  const p = PRODUCT_MAP[productId];
-  const body = document.getElementById('reviewModalBody');
-  body.innerHTML = `
-    <div class="modal-head"><b>Отзыв о товаре</b><button class="close-btn" data-close="reviewModal">✕</button></div>
-    <div class="muted small" style="text-align:center;margin-bottom:6px">${esc(p.name)}</div>
-    <div class="star-input" id="starInput">
-      ${[1,2,3,4,5].map(i=>`<span data-star="${i}">★</span>`).join('')}
-    </div>
-    <textarea id="reviewText" class="input" placeholder="Поделитесь впечатлением…"></textarea>
-    <label class="muted small" style="display:block;margin-bottom:6px">Фото (до 3)</label>
-    <div class="photo-upload" id="reviewPhotos">
-      <label for="reviewFile">＋</label>
-      <input type="file" id="reviewFile" accept="image/*" multiple/>
-    </div>
-    <button class="btn" id="btnSubmitReview">Отправить отзыв</button>
-  `;
-  let rating = 0;
-  const stars = body.querySelectorAll('#starInput span');
-  stars.forEach(s => {
-    s.onclick = () => {
-      rating = Number(s.dataset.star);
-      stars.forEach(x => x.classList.toggle('on', Number(x.dataset.star) <= rating));
-    };
-  });
-  const photosBox = document.getElementById('reviewPhotos');
-  const fileInput = document.getElementById('reviewFile');
-  fileInput.onchange = async (e) => {
-    const files = Array.from(e.target.files || []);
-    for (const f of files){
-      if (state.reviewPhotos.length >= 3) { toast('Максимум 3 фото','err'); break; }
-      try {
-        const data = await compressImage(f, 800, 0.65);
-        state.reviewPhotos.push(data);
-      } catch(err){ console.warn(err); }
-    }
-    fileInput.value = '';
-    // refresh
-    const label = photosBox.querySelector('label');
-    photosBox.querySelectorAll('.ph').forEach(x=>x.remove());
-    state.reviewPhotos.forEach((src, idx) => {
-      const div = document.createElement('div');
-      div.className = 'ph';
-      div.innerHTML = `<img src="${esc(src)}"/><button data-rmphoto="${idx}">✕</button>`;
-      photosBox.insertBefore(div, label);
-    });
-    photosBox.querySelectorAll('[data-rmphoto]').forEach(b => {
-      b.onclick = (ev) => {
-        ev.preventDefault();
-        state.reviewPhotos.splice(Number(b.dataset.rmphoto), 1);
-        fileInput.dispatchEvent(new Event('change'));
-      };
-    });
-  };
-  document.getElementById('btnSubmitReview').onclick = async () => {
-    const btn = document.getElementById('btnSubmitReview');
-    btn.disabled = true; btn.textContent = 'Отправляем…';
-    try {
-      await submitReview(productId, rating, document.getElementById('reviewText').value, state.reviewPhotos);
-      toast('Спасибо за отзыв!', 'ok');
-      closeModal('reviewModal');
-      if (state.activeProductId === productId) openProductModal(productId);
-    } catch(err){
-      toast(err.message, 'err');
-      btn.disabled = false; btn.textContent = 'Отправить отзыв';
-    }
-  };
-  openModal('reviewModal');
-}
-
-/* ========== DELEGATES ========== */
-document.addEventListener('click', async (e) => {
-  const closeBtn = e.target.closest('[data-close]');
-  if (closeBtn){ closeModal(closeBtn.dataset.close); return; }
-
-  const tabBtn = e.target.closest('[data-tab]');
-  if (tabBtn){ state.tab = tabBtn.dataset.tab; render(); return; }
-
-  const addCart = e.target.closest('[data-addcart]');
-  if (addCart){ await addToCart(addCart.dataset.addcart); return; }
-
-  const prodView = e.target.closest('[data-prodview]');
-  if (prodView && !addCart){ openProductModal(prodView.dataset.prodview); return; }
-
-  const qtyBtn = e.target.closest('[data-qty]');
-  if (qtyBtn){
-    const pid = qtyBtn.dataset.qty;
-    const delta = Number(qtyBtn.dataset.delta);
-    const cur = Number((state.user.cart||{})[pid] || 0);
-    await setCartQty(pid, cur + delta);
-    return;
-  }
-  const rm = e.target.closest('[data-removecart]');
-  if (rm){ await removeFromCart(rm.dataset.removecart); return; }
-
-  const showQr = e.target.closest('[data-showqr]');
-  if (showQr){ showOrderQr(showQr.dataset.showqr); return; }
-
-  const revBtn = e.target.closest('[data-reviewprod]');
-  if (revBtn){ openReviewModal(revBtn.dataset.reviewprod); return; }
-
-  const viewPhoto = e.target.closest('[data-viewphoto]');
-  if (viewPhoto){
-    const src = viewPhoto.dataset.viewphoto;
-    document.getElementById('photoViewerBody').innerHTML = `<img src="${esc(src)}" style="max-width:100%;max-height:95vh;border-radius:12px;display:block;margin:0 auto"/>`;
-    openModal('photoViewer');
-    return;
-  }
-  if (e.target.id === 'photoViewer' || (e.target.closest('#photoViewer') && !e.target.closest('img'))){
-    closeModal('photoViewer');
-    return;
-  }
-
-  const boxQr = e.target.closest('[data-boxqr]');
-  if (boxQr){ showBoxQr(boxQr.dataset.boxqr); return; }
-
-  const changeBoxQr = e.target.closest('[data-changeboxqr]');
-  if (changeBoxQr){ try { await changeBoxCode(changeBoxQr.dataset.changeboxqr); } catch(err){ toast(err.message,'err'); } return; }
-
-  const approve = e.target.closest('[data-approve]');
-  if (approve){ try { await approvePvz(approve.dataset.approve); } catch(err){ toast(err.message,'err'); } return; }
-
-  const reject = e.target.closest('[data-reject]');
-  if (reject){ try { await rejectPvz(reject.dataset.reject); } catch(err){ toast(err.message,'err'); } return; }
-
-  const delPvz = e.target.closest('[data-delpvz]');
-  if (delPvz){ try { await deletePvz(delPvz.dataset.delpvz); } catch(err){ toast(err.message,'err'); } return; }
-
-  const delSup = e.target.closest('[data-delsup]');
-  if (delSup){ try { await deleteSupportAccount(delSup.dataset.delsup); } catch(err){ toast(err.message,'err'); } return; }
-});
-
-document.getElementById('btnApplyPvz').onclick = async () => {
-  try {
-    await submitPvzApplication(
-      document.getElementById('applyName').value,
-      document.getElementById('applyCity').value,
-      document.getElementById('applyAddress').value,
-      document.getElementById('applySchedule').value
-    );
-    toast('Заявка отправлена', 'ok');
-    closeModal('applyPvzModal');
-  } catch(err){ toast(err.message,'err'); }
-};
-
-(function boot(){
-  const saved = localStorage.getItem('mkt_phone');
-  if (saved){ state.phone = saved; subscribeUser(saved); }
-  else render();
-})();
-</script>
-</body>
-</html>
+        </div>`).join('') : '<div class="muted small">Нет коробок в пути</div>
